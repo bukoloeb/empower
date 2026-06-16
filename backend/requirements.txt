@@ -1,0 +1,10 @@
+django>=4.2,<5.0
+psycopg2-binary
+python-dotenv
+django-environ
+django-tailwind 
+django-browser-reload
+pillow
+reportlab
+whitenoise
+django-ranged-response

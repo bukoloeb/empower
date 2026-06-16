@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 px-4">
+    <div class="mb-10 border-b border-gray-100 pb-6">
+        <h1 class="text-3xl font-black text-gray-900 tracking-tight">{{ quiz.title }}</h1>
+        <p class="text-sm text-gray-500 font-bold mt-1 uppercase tracking-widest">Course: {{ quiz.course.title }}</p>
+    </div>
+
+    <form method="POST" class="space-y-8">
+        {% csrf_token %}
+        {% for question in quiz.questions.all %}
+        <div class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm">
+            <p class="text-lg font-black text-gray-900 mb-6">
+                <span class="text-blue-600 mr-2">{{ forloop.counter }}.</span> {{ question.text }}
+            </p>
+            <div class="space-y-3">
+                {% for choice in question.choices.all %}
+                <label class="flex items-center p-4 rounded-2xl border border-gray-300 hover:border-blue-500 hover:bg-blue-50 transition cursor-pointer group">
+                    <input type="radio" name="question_{{ question.id }}" value="{{ choice.id }}" required
+                           class="w-5 h-5 text-blue-600 border-gray-400 focus:ring-blue-500">
+                    <span class="ml-4 text-sm font-bold text-gray-700 group-hover:text-blue-900">{{ choice.text }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <button type="submit" class="w-full bg-blue-600 text-white py-5 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-[0.98]">
+            Submit Assessment
+        </button>
+    </form>
+</div>
+{% endblock %}

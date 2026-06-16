@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-12 px-4">
+    <div class="mb-10 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-gray-900 tracking-tight">
+                {% if lesson %}Edit{% else %}Add{% endif %} Lesson
+            </h1>
+            <p class="text-sm text-gray-500 font-medium mt-1 uppercase tracking-tight">
+                Module: <span class="text-blue-600 font-bold">{{ module.title }}</span>
+            </p>
+        </div>
+        <a href="{% url 'manage_curriculum' module.course.slug %}" class="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition">
+            Cancel & Exit
+        </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="bg-white border border-gray-200 rounded-3xl p-8 shadow-sm space-y-8">
+        {% csrf_token %}
+
+        <div class="space-y-6">
+            <div>
+                <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2">Lesson Title</label>
+                {{ form.title }}
+                {% if form.title.errors %}<p class="text-red-500 text-[10px] mt-1 font-bold">{{ form.title.errors.0 }}</p>{% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2">Content Type</label>
+                    {{ form.content_type }}
+                </div>
+                <div class="flex items-center gap-3 md:pt-6">
+                    {{ form.is_preview }}
+                    <label class="text-sm font-bold text-gray-800">Available as Free Preview</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="border-t border-gray-100 pt-8 space-y-8">
+            <p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-4">Lesson Content</p>
+
+            <div id="video-fields" class="space-y-6 p-6 bg-blue-50/30 rounded-2xl border border-blue-100">
+                <div>
+                    <label class="block text-[11px] font-black text-blue-700 uppercase tracking-widest mb-2 tracking-widest">YouTube / Vimeo URL</label>
+                    {{ form.video_url }}
+                </div>
+                <div class="relative py-2">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-blue-100"></div></div>
+                    <div class="relative flex justify-center text-[9px] font-black text-blue-400 uppercase tracking-widest bg-transparent px-2">OR</div>
+                </div>
+                <div>
+                    <label class="block text-[11px] font-black text-blue-700 uppercase tracking-widest mb-2 tracking-widest">Direct Video Upload</label>
+                    {{ form.video_file }}
+                </div>
+            </div>
+
+            <div id="pdf-fields" class="p-6 bg-red-50/30 rounded-2xl border border-red-100">
+                <label class="block text-[11px] font-black text-red-700 uppercase tracking-widest mb-2 tracking-widest">Upload PDF Document</label>
+                {{ form.pdf_file }}
+            </div>
+
+            <div id="text-fields" class="space-y-2">
+                <label class="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2">Article / Reading Content</label>
+                {{ form.text_content }}
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-4 pt-4 pb-4">
+            <button type="submit" class="bg-blue-600 text-white px-12 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                Save Lesson
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const typeSelect = document.querySelector('select[name="content_type"]');
+        const videoSection = document.getElementById('video-fields');
+        const pdfSection = document.getElementById('pdf-fields');
+        const textSection = document.getElementById('text-fields');
+
+        function toggleSections() {
+            const value = typeSelect.value;
+            // Hide all
+            [videoSection, pdfSection, textSection].forEach(el => el.classList.add('hidden'));
+
+            // Show relevant
+            if (value === 'VIDEO') videoSection.classList.remove('hidden');
+            else if (value === 'PDF') pdfSection.classList.remove('hidden');
+            else if (value === 'TEXT') textSection.classList.remove('hidden');
+        }
+
+        typeSelect.addEventListener('change', toggleSections);
+        toggleSections(); // Initial state
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4">
+    <div class="mb-10 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-black text-gray-900 tracking-tight">{{ action }} Course</h1>
+            <p class="text-sm text-gray-500 font-medium mt-1">Fill in the primary details to start building your curriculum.</p>
+        </div>
+        <a href="{% url 'educator_dashboard' %}" class="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition">
+            Cancel & Exit
+        </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" class="space-y-8">
+        {% csrf_token %}
+
+        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+            <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-8">Basic Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Course Title</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}<p class="text-red-500 text-xs mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Category</label>
+                    {{ form.category }}
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Difficulty Level</label>
+                    {{ form.level }}
+                </div>
+
+                <div class="md:col-span-2">
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Description</label>
+                    {{ form.description }}
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+            <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-8">Media & Specifications</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Key Skills Gained</label>
+                    {{ form.skills_gained }}
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Estimated Duration</label>
+                    {{ form.estimated_duration }}
+                    <p class="text-[10px] text-gray-400 mt-1 italic">Format: HH:MM:SS</p>
+                </div>
+
+                <div>
+                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Course Thumbnail</label>
+                    <div class="mt-1 flex items-center">
+                        {{ form.thumbnail }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
+            <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-8">Certification & Status</h2>
+            
+            <div class="space-y-6">
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                    <div>
+                        <p class="text-sm font-bold text-gray-900">Provide Digital Certificate</p>
+                        <p class="text-[10px] text-gray-500 font-medium">Issue an automated PDF on completion.</p>
+                    </div>
+                    {{ form.provides_certificate }}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Passing Grade (%)</label>
+                        {{ form.passing_percentage }}
+                    </div>
+                    
+                    <div class="flex items-center gap-3 pt-6">
+                        {{ form.is_published }}
+                        <label class="text-sm font-bold text-gray-900">Publish immediately</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-end gap-4 pt-4 pb-12">
+            <button type="submit" class="bg-blue-600 text-white px-12 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+                Save and Continue to Curriculum
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

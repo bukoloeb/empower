@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 py-10">
+    <div class="mb-10">
+        <h1 class="text-3xl font-black text-gray-900 tracking-tight">My Learning</h1>
+        <p class="text-gray-500 mt-2">Pick up where you left off in your enrolled courses.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        {% for enrollment in enrollments %}
+        <div class="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300">
+            <div class="relative h-40 w-full overflow-hidden bg-gray-100">
+                {% if enrollment.course.thumbnail %}
+                    <img src="{{ enrollment.course.thumbnail.url }}" alt="" class="w-full h-full object-cover">
+                {% else %}
+                    <div class="w-full h-full bg-blue-600 flex items-center justify-center font-black text-white italic">EE</div>
+                {% endif %}
+
+                {% if enrollment.is_completed %}
+                <div class="absolute inset-0 bg-green-600/60 backdrop-blur-sm flex items-center justify-center">
+                    <span class="bg-white text-green-600 px-3 py-1 rounded-full text-xs font-black uppercase">Completed</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="p-5 flex flex-col h-full">
+                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">
+                    {{ enrollment.course.category.name }}
+                </span>
+                <h4 class="text-md font-bold text-gray-900 leading-tight mb-4 line-clamp-2 min-h-[2.5rem]">
+                    {{ enrollment.course.title }}
+                </h4>
+
+                <div class="mt-auto">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] font-black text-gray-400 uppercase">Progress</span>
+                        <span class="text-[10px] font-black text-blue-600">{% if enrollment.is_completed %}100%{% else %}Started{% endif %}</span>
+                    </div>
+                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-6">
+                        <div class="bg-blue-600 h-1.5 rounded-full" style="width: {% if enrollment.is_completed %}100%{% else %}15%{% endif %}"></div>
+                    </div>
+
+                    <a href="{% url 'course_player' enrollment.course.slug %}" class="block w-full text-center bg-gray-900 text-white py-3 rounded-xl text-xs font-black hover:bg-black transition-all">
+                        Continue Course
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-span-full py-20 text-center bg-white border-2 border-dashed border-gray-100 rounded-3xl">
+            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900">No courses yet</h3>
+            <p class="text-gray-500 mt-2 text-sm">You haven't enrolled in any courses. Explore our catalog to get started!</p>
+            <a href="{% url 'course_list' %}" class="inline-block mt-6 px-8 py-3 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition">
+                Browse Catalog
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

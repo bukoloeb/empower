@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12">
+    <h1 class="text-3xl font-black text-gray-900 mb-8">Account Settings</h1>
+
+    <div class="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <form method="post" enctype="multipart/form-data" class="p-8 space-y-10">
+            {% csrf_token %}
+
+            <div class="flex flex-col md:flex-row items-center gap-10 pb-10 border-b border-gray-50">
+                <div class="w-28 h-28 rounded-2xl overflow-hidden bg-gray-900 border-4 border-gray-50 shadow-md">
+                    {% if user.profile_picture %}
+                        <img src="{{ user.profile_picture.url }}" class="w-full h-full object-cover">
+                    {% else %}
+                        <div class="w-full h-full flex items-center justify-center text-white font-black text-3xl italic">EE</div>
+                    {% endif %}
+                </div>
+                <div class="flex-1 space-y-4">
+                    <label class="block text-xs font-black uppercase tracking-widest text-gray-900">Change Profile Photo</label>
+                    <input type="file" name="profile_picture" class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-6 file:rounded-xl file:border-0 file:text-xs file:font-black file:bg-blue-600 file:text-white hover:file:bg-blue-700 transition-all cursor-pointer">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-2">
+                    <label class="text-[11px] font-black uppercase tracking-widest text-gray-900">First Name</label>
+                    {{ form.first_name }}
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[11px] font-black uppercase tracking-widest text-gray-900">Last Name</label>
+                    {{ form.last_name }}
+                </div>
+                <div class="md:col-span-2 space-y-2">
+                    <label class="text-[11px] font-black uppercase tracking-widest text-gray-900">Email Address</label>
+                    {{ form.email }}
+                </div>
+            </div>
+
+            <div class="pt-6">
+                <button type="submit" class="bg-blue-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-blue-100 hover:bg-blue-700 transition transform hover:-translate-y-1">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

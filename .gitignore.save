@@ -1,0 +1,26 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local Django development settings / environment variables
+.env
+.env.*
+db.sqlite3
+
+# Media and Static file directories (Do not push large test videos!)
+backend/media/
+backend/staticfiles/
+media/
+staticfiles/
+
+# Docker persistent data
+postgres_data/
+
+# Node / Tailwind dependencies (frontend/theme)
+node_modules/
+.sass-cache/
+
+# OS-specific hidden files
+.DS_Store
+Thumbs.db

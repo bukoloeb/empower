@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 border border-gray-200 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-6 text-center">Join Empower Edge</h2>
+    <form method="POST">
+        {% csrf_token %}
+        <div class="mb-4">
+            <label class="block text-gray-700">Email Address</label>
+            <input type="email" name="email" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Password</label>
+            <input type="password" name="password" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Phone Number</label>
+            <input type="text" name="phone_number" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+        <div class="mb-4">
+            <label class="block text-gray-700">Address</label>
+            <textarea name="address" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        </div>
+        <div class="mb-6">
+            <label class="block text-gray-700">I am a...</label>
+            <select name="role" class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="LEARNER">Learner</option>
+                <option value="EDUCATOR">Educator</option>
+            </select>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition">Register</button>
+    </form>
+</div>
+{% endblock %}

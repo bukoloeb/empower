@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-20 px-4 text-center">
+    <div class="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 {% if passed %}bg-green-100 text-green-600{% else %}bg-red-100 text-red-600{% endif %}">
+        {% if passed %}
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+        {% else %}
+            <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"/></svg>
+        {% endif %}
+    </div>
+
+    <h1 class="text-4xl font-black text-gray-900 mb-2">{% if passed %}Passed!{% else %}Try Again{% endif %}</h1>
+    <p class="text-gray-500 font-bold uppercase tracking-widest text-xs mb-10">Your Score: {{ score }}%</p>
+
+    <div class="bg-white border border-gray-200 rounded-3xl p-8 mb-10 shadow-sm">
+        <div class="flex justify-between text-sm font-bold mb-2">
+            <span class="text-gray-400">Correct Answers</span>
+            <span class="text-gray-900">{{ correct_answers }} / {{ total_questions }}</span>
+        </div>
+        <div class="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+            <div class="h-full {% if passed %}bg-green-500{% else %}bg-red-500{% endif %}" style="width: {{ score }}%"></div>
+        </div>
+    </div>
+
+    <div class="flex flex-col gap-3">
+        <a href="{% url 'course_player' quiz.course.slug %}" class="bg-gray-900 text-white py-4 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black transition">
+            Continue to Next Lesson
+        </a>
+        {% if not passed %}
+            <a href="{% url 'take_quiz' quiz.id %}" class="text-blue-600 text-xs font-black uppercase tracking-widest py-2">Retake Quiz</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
