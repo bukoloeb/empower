@@ -1,65 +1,237 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-7xl mx-auto px-4 py-10">
-    <div class="mb-10">
-        <h1 class="text-3xl font-black text-gray-900 tracking-tight">My Learning</h1>
-        <p class="text-gray-500 mt-2">Pick up where you left off in your enrolled courses.</p>
-    </div>
+<div class="w-full bg-white mt-2">
+    <div class="flex flex-col lg:flex-row gap-10 items-start">
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {% for item in enrolled_courses %}
-        <div class="group bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-xl transition-all duration-300">
-            <div class="relative h-40 w-full overflow-hidden bg-gray-100">
-                {% if item.course.thumbnail %}
-                    <img src="{{ item.course.thumbnail.url }}" alt="{{ item.course.title }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                {% else %}
-                    <div class="w-full h-full bg-blue-600 flex items-center justify-center font-black text-white italic">EE</div>
-                {% endif %}
+        <aside class="w-full lg:w-64 flex-shrink-0 border-r border-slate-200 lg:pr-6 space-y-6">
+            <div class="pb-2 border-b border-slate-100">
+                <p class="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em] mb-0.5">Control Center</p>
+                <h3 class="text-xl font-black text-slate-900 tracking-tight">My Learning</h3>
+            </div>
 
-                {% if item.progress == 100 %}
-                <div class="absolute inset-0 bg-green-600/60 backdrop-blur-sm flex items-center justify-center">
-                    <span class="bg-white text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Completed</span>
+            <nav class="flex flex-col gap-1.5" id="learnerDashboardTabsMenu">
+                <button onclick="switchLearnerTab('all', this)"
+                        id="defaultLearnerTabBtn"
+                        class="w-full flex items-center justify-between px-4 py-3 text-left font-black text-xs rounded-xl transition-all border outline-none cursor-pointer border-blue-100 bg-blue-50 text-blue-700">
+                    <span class="flex items-center gap-2.5">
+                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75c.621 0 1.125.504 1.125 1.125v1.125c0 .621-.504 1.125-1.125 1.125H5.625a1.125 1.125 0 01-1.125-1.125V5.625c0-.621.504-1.125 1.125-1.125z"/></svg>
+                        My Enrolled Courses
+                    </span>
+                    <span class="bg-blue-600 text-white font-black text-[10px] px-2 py-0.5 rounded-md shadow-sm">{{ enrolled_courses|length }}</span>
+                </button>
+
+                <button onclick="switchLearnerTab('pending', this)"
+                        class="w-full flex items-center justify-between px-4 py-3 text-left font-bold text-xs rounded-xl transition-all border border-transparent text-slate-600 hover:bg-slate-50 outline-none cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        In Progress
+                    </span>
+                </button>
+
+                <button onclick="switchLearnerTab('completed', this)"
+                        class="w-full flex items-center justify-between px-4 py-3 text-left font-bold text-xs rounded-xl transition-all border border-transparent text-slate-600 hover:bg-slate-50 outline-none cursor-pointer">
+                    <span class="flex items-center gap-2.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Completed Tracks
+                    </span>
+                </button>
+
+                <button onclick="switchLearnerTab('certificates', this)"
+                        class="w-full flex items-center justify-between px-4 py-3 text-left font-bold text-xs rounded-xl transition-all border border-transparent text-slate-600 hover:bg-slate-50 outline-none cursor-pointer border-t border-dashed border-slate-200 mt-2 pt-3.5">
+                    <span class="flex items-center gap-2.5">
+                        <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.26 10.147a60.436 60.436 0 00-.491 6.347A48.62 48.62 0 0112 20.904a48.62 48.62 0 018.232-4.41 60.46 60.46 0 00-.491-6.347m-15.482 0a48.67 48.67 0 014.2-2.28m-4.2 2.28l8.924-4.462a1.924 1.924 0 011.652 0l8.924 4.462m-1.652 0c.53.267 1.052.553 1.562.857m-4.053-4.13l-4.398 2.199a1.924 1.924 0 01-1.652 0L6.518 5.168m12.482 0a19.29 19.29 0 00-12.482 0m12.482 0c-.004-.016-.007-.032-.011-.047A1.924 1.924 0 0014.518 4h-5.036a1.924 1.924 0 00-1.953 1.121c-.004.015-.007.031-.011.047m10.5 11.742l1.242 3.725a.75.75 0 01-1.076.876l-1.906-1.06a.75.75 0 00-.706 0l-1.906 1.06a.75.75 0 01-1.076-.876l1.242-3.725m-6 0a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        Downloaded Certificates
+                    </span>
+                </button>
+            </nav>
+
+            <div class="pt-4 border-t border-slate-100">
+                <a href="{% url 'course_list' %}" class="w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest transition shadow-sm block border border-blue-700 cursor-pointer">
+                    Browse Catalog
+                </a>
+            </div>
+        </aside>
+
+        <main class="flex-1 w-full">
+
+            <div id="learnerCoursesSectionBlock">
+                <div class="mb-6 border-b border-slate-200 pb-3">
+                    <h2 id="learnerSectionDynamicTitle" class="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <span class="w-2 h-2 bg-blue-600 rounded-full"></span> My Active Enrollment Paths
+                    </h2>
                 </div>
-                {% endif %}
-            </div>
 
-            <div class="p-5 flex flex-col h-full">
-                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-2">
-                    {{ item.course.category.name }}
-                </span>
-                <h4 class="text-md font-bold text-gray-900 leading-tight mb-4 line-clamp-2 min-h-[2.5rem]">
-                    {{ item.course.title }}
-                </h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="learnerCoursesGrid">
+                    {% for item in enrolled_courses %}
+                    <div class="learner-dashboard-card bg-white rounded-2xl border-2 border-slate-200 shadow-sm overflow-hidden hover:border-slate-400 transition-all duration-300 flex flex-col"
+                         data-completed="{% if item.progress == 100 %}true{% else %}false{% endif %}">
 
-                <div class="mt-auto">
-                    <div class="flex justify-between items-center mb-1">
-                        <span class="text-[10px] font-black text-gray-400 uppercase">Progress</span>
-                        <span class="text-[10px] font-black text-blue-600">{{ item.progress }}%</span>
+                        <a href="{% url 'course_player' item.course.slug %}" class="relative h-40 w-full overflow-hidden bg-slate-50 block border-b border-slate-200">
+                            {% if item.course.thumbnail %}
+                                <img src="{{ item.course.thumbnail.url }}" alt="{{ item.course.title }}" class="w-full h-full object-cover">
+                            {% else %}
+                                <div class="w-full h-full bg-blue-600 flex items-center justify-center font-black text-white italic text-xl">EE</div>
+                            {% endif %}
+
+                            {% if item.progress == 100 %}
+                            <div class="absolute inset-0 bg-white/90 backdrop-blur-xs flex items-center justify-center z-10">
+                                <span class="bg-green-600 border border-green-500 text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm">Completed</span>
+                            </div>
+                            {% endif %}
+                        </a>
+
+                        <div class="p-5 flex flex-col flex-1">
+                            <span class="text-[9px] font-black text-blue-600 uppercase tracking-widest mb-1.5 block">
+                                {{ item.course.category.name }}
+                            </span>
+
+                            <h4 class="text-sm font-black text-slate-900 tracking-tight leading-snug hover:text-blue-600 transition-colors">
+                                <a href="{% url 'course_player' item.course.slug %}">
+                                    {{ item.course.title }}
+                                </a>
+                            </h4>
+
+                            <p class="text-xs font-semibold text-slate-500 line-clamp-2 mt-2 mb-4 leading-relaxed flex-1">
+                                {{ item.course.description }}
+                            </p>
+
+                            <div class="mt-auto pt-3 border-t border-slate-100">
+                                <div class="flex justify-between items-center mb-1.5">
+                                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-wider">Progress</span>
+                                    <span class="text-[10px] font-black text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">{{ item.progress }}%</span>
+                                </div>
+
+                                <div class="w-full bg-slate-100 rounded-full h-2 mb-4 border border-slate-200 overflow-hidden">
+                                    <div class="bg-blue-600 h-full rounded-full transition-all duration-700" style="width: {{ item.progress }}%"></div>
+                                </div>
+
+                                <a href="{% url 'course_player' item.course.slug %}" class="block w-full text-center bg-slate-950 hover:bg-blue-600 text-white py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm">
+                                    {% if item.progress == 0 %}Start Learning{% else %}Continue Learning{% endif %}
+                                </a>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="w-full bg-gray-100 rounded-full h-1.5 mb-6">
-                        <div class="bg-blue-600 h-1.5 rounded-full transition-all duration-700" style="width: {{ item.progress }}%"></div>
+                    {% empty %}
+                    <div class="col-span-full py-16 text-center bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl">
+                        <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">No active course tracks yet</h3>
+                        <p class="text-xs text-slate-500 font-medium mt-1">You haven't enrolled in any educational paths. Click 'Browse Catalog' to explore our subjects!</p>
                     </div>
+                    {% endfor %}
+                </div>
 
-                    <a href="{% url 'course_player' item.course.slug %}" class="block w-full text-center bg-gray-900 text-white py-3 rounded-xl text-xs font-black hover:bg-blue-600 transition-all">
-                        {% if item.progress == 0 %}Start Course{% else %}Continue Course{% endif %}
-                    </a>
+                <div id="learnerFilterEmptyState" class="hidden py-14 text-center bg-slate-50 border-2 border-dashed border-slate-300 rounded-2xl">
+                    <h3 class="text-sm font-black text-slate-800 uppercase tracking-wider">No modules found</h3>
+                    <p id="learnerFilterEmptyStateText" class="text-xs text-slate-500 font-medium mt-1">You don't have any matching entries matching this tab view selection.</p>
                 </div>
             </div>
-        </div>
-        {% empty %}
-        <div class="col-span-full py-20 text-center bg-white border-2 border-dashed border-gray-100 rounded-3xl">
-            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <svg class="w-8 h-8 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+
+            <div id="learnerCertificatesSectionBlock" class="hidden">
+                <div class="mb-6 border-b border-slate-200 pb-3">
+                    <h2 class="text-xs font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <span class="w-2 h-2 bg-emerald-600 rounded-full"></span> Unlocked Graduation Awards
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {% for item in enrolled_courses %}
+                        {% if item.progress == 100 %}
+                        <div class="p-6 bg-white border-2 border-slate-200 rounded-2xl flex flex-col justify-between gap-6 shadow-sm hover:border-slate-400 transition-all">
+                            <div class="space-y-3">
+                                <span class="text-[9px] font-black text-green-700 bg-green-50 border border-green-200 px-2.5 py-1 rounded-md uppercase tracking-wider">Verified Graduate Certificate</span>
+                                <h4 class="text-base font-black text-slate-900 leading-snug line-clamp-2">{{ item.course.title }}</h4>
+                                <p class="text-[11px] text-slate-500 font-medium leading-relaxed truncate line-clamp-2">{{ item.course.description }}</p>
+                            </div>
+                            <a href="{% url 'download_certificate' item.course.slug %}" class="w-full text-center bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl text-xs font-black uppercase tracking-widest border border-blue-700 transition shadow-sm block cursor-pointer">
+                                Download PDF File
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const certificateCards = document.querySelectorAll('#learnerCertificatesSectionBlock .p-6');
+                            if (certificateCards.length === 0) {
+                                document.getElementById('learnerCertificatesSectionBlock').innerHTML += `
+                                    <div class="col-span-full py-12 text-center border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50/50">
+                                        <p class="text-xs text-slate-400 font-bold italic">No completion certificates unlocked yet. Complete an enrolled course milestone track with a passing score to instantly generate your credentials right here.</p>
+                                    </div>`;
+                            }
+                        });
+                    </script>
+                </div>
             </div>
-            <h3 class="text-xl font-bold text-gray-900">No courses yet</h3>
-            <p class="text-gray-500 mt-2 text-sm">You haven't enrolled in any courses. Explore our catalog to get started!</p>
-            <a href="{% url 'course_list' %}" class="inline-block mt-6 px-8 py-3 bg-blue-600 text-white rounded-xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition">
-                Browse Catalog
-            </a>
-        </div>
-        {% endfor %}
+
+        </main>
     </div>
 </div>
+
+<script>
+    function switchLearnerTab(filterMode, clickedElement) {
+        // 1. Reset all left list item links to neutral styling sets
+        const sideMenuBtns = document.querySelectorAll('#learnerDashboardTabsMenu button');
+        sideMenuBtns.forEach(btn => {
+            btn.className = "w-full flex items-center justify-between px-4 py-3 text-left font-bold text-xs rounded-xl transition-all border border-transparent text-slate-600 hover:bg-slate-50 outline-none cursor-pointer";
+            if (btn.innerText.includes('Downloaded Certificates')) {
+                btn.classList.add('border-t', 'border-dashed', 'border-slate-200', 'mt-2', 'pt-3.5');
+            }
+        });
+
+        // 2. Highlight clicked link button row component
+        clickedElement.className = "w-full flex items-center justify-between px-4 py-3 text-left font-black text-xs rounded-xl transition-all border outline-none cursor-pointer border-blue-100 bg-blue-50 text-blue-700";
+        if (clickedElement.innerText.includes('Downloaded Certificates')) {
+            clickedElement.classList.add('border-t', 'border-dashed', 'border-slate-200', 'mt-2', 'pt-3.5');
+        }
+
+        const coursesPanelBlock = document.getElementById('learnerCoursesSectionBlock');
+        const certificatesPanelBlock = document.getElementById('learnerCertificatesSectionBlock');
+        const cardsGrid = document.getElementById('learnerCoursesGrid');
+        const tabFallbackState = document.getElementById('learnerFilterEmptyState');
+        const tabFallbackStateText = document.getElementById('learnerFilterEmptyStateText');
+        const dynamicTitleTextHeader = document.getElementById('learnerSectionDynamicTitle');
+        const courseCards = document.querySelectorAll('.learner-dashboard-card');
+
+        // 3. Coordinate visibility router actions
+        if (filterMode === 'certificates') {
+            coursesPanelBlock.classList.add('hidden');
+            certificatesPanelBlock.classList.remove('hidden');
+        } else {
+            certificatesPanelBlock.classList.add('hidden');
+            coursesPanelBlock.classList.remove('hidden');
+
+            let visibleCardsCount = 0;
+
+            courseCards.forEach(card => {
+                const isComplete = card.getAttribute('data-completed') === 'true';
+
+                if (filterMode === 'all') {
+                    card.classList.remove('hidden');
+                    dynamicTitleTextHeader.innerHTML = '<span class="w-2 h-2 bg-blue-600 rounded-full"></span> My Active Enrollment Paths';
+                    visibleCardsCount++;
+                } else if (filterMode === 'completed') {
+                    if (isComplete) { card.classList.remove('hidden'); visibleCardsCount++; } else { card.classList.add('hidden'); }
+                    dynamicTitleTextHeader.innerHTML = '<span class="w-2 h-2 bg-green-600 rounded-full"></span> My Completed Courses';
+                } else if (filterMode === 'pending') {
+                    if (!isComplete) { card.classList.remove('hidden'); visibleCardsCount++; } else { card.classList.add('hidden'); }
+                    dynamicTitleTextHeader.innerHTML = '<span class="w-2 h-2 bg-amber-500 rounded-full"></span> My In-Progress Courses';
+                }
+            });
+
+            // Adjust fallback display blocks conditionally if counts match 0 bounds
+            if (visibleCardsCount === 0) {
+                cardsGrid.classList.add('hidden');
+                tabFallbackState.classList.remove('hidden');
+                if (filterMode === 'completed') {
+                    tabFallbackStateText.innerText = "You haven't completed any course curriculum tracks yet. Keep learning to unlock your credentials!";
+                } else if (filterMode === 'pending') {
+                    tabFallbackStateText.innerText = "You don't have any in-progress tracks right now. Start or enroll in a course track to begin!";
+                }
+            } else {
+                tabFallbackState.classList.add('hidden');
+                cardsGrid.classList.remove('hidden');
+            }
+        }
+    }
+</script>
 {% endblock %}

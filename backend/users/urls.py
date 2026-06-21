@@ -6,7 +6,7 @@ from .views import (
     home_view,
     logout_view,
     profile_settings,
-    educator_dashboard,
+    educator_dashboard_view,  # Corrected name from .views
     learner_dashboard
 )
 
@@ -17,6 +17,8 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('home/', home_view, name='home'),
     path('settings/', profile_settings, name='profile_settings'),
-    path('dashboard/educator/', educator_dashboard, name='educator_dashboard'),
+
+    # Corrected view function routing maps locally within the users app namespace
+    path('dashboard/educator/', educator_dashboard_view, name='educator_dashboard'),
     path('dashboard/learner/', learner_dashboard, name='learner_dashboard'),
 ]

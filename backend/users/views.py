@@ -10,7 +10,9 @@ from django.db.models import Count
 from .models import User
 from .forms import UserUpdateForm
 from .utils import generate_and_send_pin
-from courses.models import Course, Enrollment, LessonCompletion
+
+# Course app models import
+from courses.models import Course, Enrollment, Lesson, LessonCompletion
 
 
 # --- AUTHENTICATION FLOW ---
@@ -27,19 +29,16 @@ def register_view(request):
             messages.error(request, "Email already registered.")
             return render(request, 'users/register.html')
 
-        # Create user but keep them unverified
         user = User.objects.create_user(
             email=email,
             password=password,
             phone_number=phone,
             address=address,
             role=role,
-            is_active=False  # Prevent login until PIN is verified
+            is_active=False
         )
 
         generate_and_send_pin(user)
-
-        # Store email in session to use on the verification page
         request.session['verification_email'] = email
         return redirect('verify_pin')
 
@@ -55,16 +54,11 @@ def verify_pin_view(request):
         entered_pin = request.POST.get('pin')
         try:
             user = User.objects.get(email=email, verification_pin=entered_pin)
-
-            # Activate and verify the user
             user.is_active = True
             user.is_verified = True
-            user.verification_pin = None  # Clear pin after use
+            user.verification_pin = None
             user.save()
-
-            # Log the user in immediately for a better experience
             login(request, user)
-
             messages.success(request, f"Welcome, {user.email}! Your account is verified.")
             return redirect('home')
         except User.DoesNotExist:
@@ -77,12 +71,10 @@ def login_view(request):
     if request.method == 'POST':
         email = request.POST.get('email')
         password = request.POST.get('password')
-
         user = authenticate(request, email=email, password=password)
 
         if user is not None:
             if user.is_active:
-                # Multi-factor style PIN login
                 generate_and_send_pin(user)
                 request.session['verification_email'] = email
                 messages.info(request, "A login PIN has been sent to your email.")
@@ -113,13 +105,11 @@ def profile_settings(request):
             return redirect('profile_settings')
     else:
         form = UserUpdateForm(instance=request.user)
-
     return render(request, 'users/settings.html', {'form': form})
 
 
 @login_required
 def home_view(request):
-    """Traffic controller to specific dashboards based on role."""
     if request.user.role == User.Role.EDUCATOR:
         return redirect('educator_dashboard')
     return redirect('learner_dashboard')
@@ -128,35 +118,77 @@ def home_view(request):
 # --- DASHBOARDS ---
 
 @login_required
-def educator_dashboard(request):
-    """Dashboard for Instructors to manage their created courses."""
-    if request.user.role != User.Role.EDUCATOR:
-        messages.error(request, "Access denied. Educator account required.")
-        return redirect('learner_dashboard')
+def educator_dashboard_view(request):
+    """Analytics-driven workspace for instructors to inspect student engagement and previews."""
+    courses = Course.objects.filter(educator=request.user).select_related('category')
 
-    # Fetch courses created by this user
-    my_courses = Course.objects.filter(educator=request.user).annotate(
-        student_count=Count('enrollments')
-    ).order_by('-created_at')
+    total_students_enrolled = 0
+    total_courses_completed = 0
+    total_lessons_finished = 0
 
-    return render(request, 'users/educator_dashboard.html', {'my_courses': my_courses})
+    max_enrollment = -1
+    most_enrolled_course_title = "None yet"
+
+    my_courses_data = []
+
+    for course in courses:
+        student_count = Enrollment.objects.filter(course=course).count()
+        completed_count = Enrollment.objects.filter(course=course, is_completed=True).count()
+
+        lessons_in_course = Lesson.objects.filter(module__course=course)
+        total_lessons_count = lessons_in_course.count()
+
+        lesson_completions_count = LessonCompletion.objects.filter(
+            lesson__module__course=course
+        ).count()
+
+        preview_lessons_count = lessons_in_course.filter(is_preview=True).count()
+
+        # Dynamically identify the single most popular course path
+        if student_count > max_enrollment and student_count > 0:
+            max_enrollment = student_count
+            most_enrolled_course_title = course.title
+
+        total_students_enrolled += student_count
+        total_courses_completed += completed_count
+        total_lessons_finished += lesson_completions_count
+
+        my_courses_data.append({
+            'course': course,
+            'slug': course.slug,
+            'title': course.title,
+            'thumbnail': course.thumbnail if course.thumbnail else None,
+            'level': course.get_level_display(),
+            'is_published': course.is_published,
+            'student_count': student_count,
+            'completed_count': completed_count,
+            'total_lessons_count': total_lessons_count,
+            'lesson_completions_count': lesson_completions_count,
+            'preview_lessons_count': preview_lessons_count,
+        })
+
+    total_expected_lessons = sum(c['student_count'] * c['total_lessons_count'] for c in my_courses_data)
+    engagement_rate = int((total_lessons_finished / total_expected_lessons) * 100) if total_expected_lessons > 0 else 0
+
+    context = {
+        'my_courses': my_courses_data,
+        'total_students_enrolled': total_students_enrolled,
+        'total_courses_completed': total_courses_completed,
+        'engagement_rate': engagement_rate,
+        'total_lessons_finished': total_lessons_finished,
+        'most_enrolled_course': most_enrolled_course_title, # Sent to frontend
+    }
+    return render(request, 'users/educator_dashboard.html', context)
 
 
 @login_required
 def learner_dashboard(request):
-    """Personalized dashboard for students showing their progress."""
     enrollments = Enrollment.objects.filter(student=request.user).select_related('course')
     enrolled_courses_progress = []
 
     for enrollment in enrollments:
         course = enrollment.course
-        # Correctly aggregate lessons across all modules in the course
-        total_lessons = LessonCompletion.objects.filter(lesson__module__course=course).count()
-
-        # This count should ideally come from a direct query on Lesson model for accuracy
-        from courses.models import Lesson
         total_lessons_count = Lesson.objects.filter(module__course=course).count()
-
         completed_lessons = LessonCompletion.objects.filter(
             student=request.user,
             lesson__module__course=course
