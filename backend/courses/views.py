@@ -69,15 +69,23 @@ def check_course_completion(user, course):
     total_lessons = Lesson.objects.filter(module__course=course).count()
     completed_lessons = LessonCompletion.objects.filter(student=user, lesson__module__course=course).count()
 
+    # Use the explicit related_name for safety
     total_quizzes = Quiz.objects.filter(course=course).count()
-    passed_quizzes = QuizSubmission.objects.filter(student=user, quiz__course=course, passed=True).count()
 
+    # Intelligently query DISTINCT quizzes passed (ignoring multiple attempts)
+    passed_quizzes = QuizSubmission.objects.filter(
+        student=user,
+        quiz__course=course,
+        passed=True
+    ).values('quiz').distinct().count()
+
+    # If they completed all lessons AND passed all available quizzes
     if total_lessons > 0 and completed_lessons >= total_lessons and passed_quizzes >= total_quizzes:
         enrollment = Enrollment.objects.filter(student=user, course=course).first()
         if enrollment and not enrollment.is_completed:
             enrollment.is_completed = True
             enrollment.save()
-            return True
+        return True
     return False
 
 
@@ -149,9 +157,52 @@ def enroll_view(request, slug):
 
 @login_required
 def my_courses_view(request):
-    """List of courses the user is currently taking."""
-    user_enrollments = Enrollment.objects.filter(student=request.user).select_related('course', 'course__category')
-    return render(request, 'courses/my_courses.html', {'enrollments': user_enrollments})
+    """Enhanced dashboard containing analytics sidebar, certificates, and marketplace recommendations."""
+    # 1. Fetch user's active enrollments
+    enrollments = Enrollment.objects.filter(student=request.user).select_related('course', 'course__category')
+
+    enrolled_courses_data = []
+    completed_courses = []
+    pending_courses = []
+
+    for enrollment in enrollments:
+        course = enrollment.course
+        total_lessons = Lesson.objects.filter(module__course=course).count()
+        completed_lessons = LessonCompletion.objects.filter(student=request.user, lesson__module__course=course).count()
+
+        progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
+
+        # Override structural completion state dynamically if records out of sync
+        is_finished = enrollment.is_completed or (progress == 100 and total_lessons > 0)
+
+        item = {
+            'enrollment': enrollment,
+            'course': course,
+            'progress': progress,
+            'is_completed': is_finished
+        }
+        enrolled_courses_data.append(item)
+
+        if is_finished:
+            completed_courses.append(item)
+        else:
+            pending_courses.append(item)
+
+    # 2. Fetch suggested marketplace items that the user hasn't enrolled in yet
+    enrolled_ids = enrollments.values_list('course_id', flat=True)
+    suggested_courses = Course.objects.filter(is_published=True).exclude(id__in=enrolled_ids).select_related(
+        'category')[:4]
+
+    context = {
+        'enrolled_courses': enrolled_courses_data,
+        'completed_courses': completed_courses,
+        'pending_courses': pending_courses,
+        'suggested_courses': suggested_courses,
+        'total_enrolled_count': len(enrolled_courses_data),
+        'completed_count': len(completed_courses),
+        'pending_count': len(pending_courses),
+    }
+    return render(request, 'courses/my_courses.html', context)
 
 
 @login_required
@@ -428,11 +479,28 @@ def reorder_questions_view(request, quiz_id):
 
 @login_required
 def download_certificate(request, course_slug):
-    enrollment = get_object_or_404(Enrollment, student=request.user, course__slug=course_slug, is_completed=True)
+    # 1. Fetch the enrollment framework safely
+    course = get_object_or_404(Course, slug=course_slug)
+    enrollment = get_object_or_404(Enrollment, student=request.user, course=course)
+
+    # 2. If it isn't marked complete yet, let's run an live check right now
+    if not enrollment.is_completed:
+        is_now_complete = check_course_completion(request.user, course)
+        if not is_now_complete:
+            # If they genuinely haven't finished, send them back to the player with an error toast
+            messages.error(request,
+                           "You haven't completed all required lessons and assessments for this certificate yet.")
+            return redirect('course_player', slug=course.slug)
+
+        # Refresh state from database update
+        enrollment.refresh_from_db()
+
+    # 3. Generate ReportLab Certificate Document
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=landscape(A4))
     width, height = landscape(A4)
 
+    # Clean styling border lines
     p.setStrokeColor(HexColor('#2563eb'))
     p.setLineWidth(5)
     p.rect(0.2 * inch, 0.2 * inch, width - 0.4 * inch, height - 0.4 * inch)
@@ -442,8 +510,11 @@ def download_certificate(request, course_slug):
 
     p.setFont("Helvetica", 18)
     p.drawCentredString(width / 2, height - 2.5 * inch, "This is to certify that")
+
     p.setFont("Helvetica-Bold", 32)
-    p.drawCentredString(width / 2, height - 3.5 * inch, f"{request.user.get_full_name() or request.user.email}")
+    # Safely get full name, fallback to username or email identity
+    user_display_name = request.user.get_full_name() or request.user.username or request.user.email
+    p.drawCentredString(width / 2, height - 3.5 * inch, f"{user_display_name}")
 
     p.setFont("Helvetica-Bold", 24)
     p.drawCentredString(width / 2, height - 5 * inch, f"{enrollment.course.title}")
@@ -451,6 +522,7 @@ def download_certificate(request, course_slug):
     p.showPage()
     p.save()
     buffer.seek(0)
+
     return FileResponse(buffer, as_attachment=True, filename=f'Certificate_{course_slug}.pdf')
 
 @login_required

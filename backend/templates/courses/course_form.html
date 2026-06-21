@@ -2,12 +2,12 @@
 
 {% block content %}
 <div class="max-w-4xl mx-auto py-12 px-4">
-    <div class="mb-10 flex items-center justify-between">
+    <div class="mb-10 flex items-center justify-between border-b border-slate-200 pb-6">
         <div>
-            <h1 class="text-3xl font-black text-gray-900 tracking-tight">{{ action }} Course</h1>
-            <p class="text-sm text-gray-500 font-medium mt-1">Fill in the primary details to start building your curriculum.</p>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">{{ action }} Course</h1>
+            <p class="text-sm text-slate-500 font-bold mt-1">Fill in the primary details to start building your curriculum.</p>
         </div>
-        <a href="{% url 'educator_dashboard' %}" class="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600 transition">
+        <a href="{% url 'educator_dashboard' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-colors border border-slate-300">
             Cancel & Exit
         </a>
     </div>
@@ -15,85 +15,108 @@
     <form method="post" enctype="multipart/form-data" class="space-y-8">
         {% csrf_token %}
 
-        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-            <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-8">Basic Information</h2>
-            
+        <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-sm">
+            <h2 class="text-xs font-black text-blue-700 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                <span class="w-2 h-2 bg-blue-600 rounded-full"></span> Basic Information
+            </h2>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="md:col-span-2">
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Course Title</label>
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Course Title <span class="text-red-500">*</span></label>
                     {{ form.title }}
-                    {% if form.title.errors %}<p class="text-red-500 text-xs mt-1">{{ form.title.errors.0 }}</p>{% endif %}
+                    {% if form.title.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.title.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Category</label>
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Category <span class="text-red-500">*</span></label>
                     {{ form.category }}
+                    {% if form.category.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.category.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Difficulty Level</label>
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Difficulty Level <span class="text-red-500">*</span></label>
                     {{ form.level }}
+                    {% if form.level.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.level.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div class="md:col-span-2">
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Description</label>
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Description / Overview <span class="text-red-500">*</span></label>
                     {{ form.description }}
+                    {% if form.description.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.description.errors.0 }}</p>{% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-            <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-8">Media & Specifications</h2>
-            
+        <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-sm">
+            <h2 class="text-xs font-black text-blue-700 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                <span class="w-2 h-2 bg-blue-600 rounded-full"></span> Media & Specifications
+            </h2>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="md:col-span-2">
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Key Skills Gained</label>
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Key Skills Gained</label>
                     {{ form.skills_gained }}
+                    {% if form.skills_gained.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.skills_gained.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Estimated Duration</label>
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Estimated Duration</label>
                     {{ form.estimated_duration }}
-                    <p class="text-[10px] text-gray-400 mt-1 italic">Format: HH:MM:SS</p>
+                    <p class="text-[10px] text-slate-500 font-semibold mt-1.5 italic">Expected formatting layout: HH:MM:SS</p>
+                    {% if form.estimated_duration.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.estimated_duration.errors.0 }}</p>{% endif %}
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Course Thumbnail</label>
-                    <div class="mt-1 flex items-center">
+                    <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Course Thumbnail Cover Image</label>
+                    <div class="mt-1 p-3 border-2 border-dashed border-slate-300 rounded-xl bg-slate-50/50">
                         {{ form.thumbnail }}
                     </div>
+                    {% if form.thumbnail.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.thumbnail.errors.0 }}</p>{% endif %}
                 </div>
             </div>
         </div>
 
-        <div class="bg-white border border-gray-100 rounded-3xl p-8 shadow-sm">
-            <h2 class="text-xs font-black text-blue-600 uppercase tracking-[0.2em] mb-8">Certification & Status</h2>
-            
+        <div class="bg-white border-2 border-slate-200 rounded-3xl p-8 shadow-sm">
+            <h2 class="text-xs font-black text-blue-700 uppercase tracking-[0.2em] mb-8 flex items-center gap-2">
+                <span class="w-2 h-2 bg-blue-600 rounded-full"></span> Certification & Status
+            </h2>
+
             <div class="space-y-6">
-                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                <div class="flex items-center justify-between p-5 bg-slate-50 border-2 border-slate-200 rounded-2xl hover:bg-slate-100/50 transition-colors">
                     <div>
-                        <p class="text-sm font-bold text-gray-900">Provide Digital Certificate</p>
-                        <p class="text-[10px] text-gray-500 font-medium">Issue an automated PDF on completion.</p>
+                        <p class="text-sm font-black text-slate-900">Provide Digital Certificate</p>
+                        <p class="text-[10px] text-slate-500 font-bold mt-0.5">Issue an automated verification PDF to students on successful completion.</p>
                     </div>
-                    {{ form.provides_certificate }}
+                    <div class="pr-2 scale-110">
+                        {{ form.provides_certificate }}
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div>
-                        <label class="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2">Passing Grade (%)</label>
-                        {{ form.passing_percentage }}
+                        <label class="block text-[11px] font-black text-slate-700 uppercase tracking-widest mb-2">Passing Assessment Grade (%)</label>
+                        <div class="flex items-center gap-3">
+                            {{ form.passing_percentage }}
+                            <span class="text-sm font-black text-slate-400">% minimum score</span>
+                        </div>
+                        {% if form.passing_percentage.errors %}<p class="text-red-600 text-xs font-bold mt-1.5">{{ form.passing_percentage.errors.0 }}</p>{% endif %}
                     </div>
-                    
-                    <div class="flex items-center gap-3 pt-6">
-                        {{ form.is_published }}
-                        <label class="text-sm font-bold text-gray-900">Publish immediately</label>
+
+                    <div class="flex items-start gap-4 p-5 bg-blue-50/50 border-2 border-blue-100 rounded-2xl mt-auto h-[74px]">
+                        <div class="mt-0.5 scale-110">
+                            {{ form.is_published }}
+                        </div>
+                        <div>
+                            <label class="text-sm font-black text-slate-900 block cursor-pointer select-none">Publish immediately</label>
+                            <span class="text-[10px] block text-slate-500 font-bold mt-0.5">Make this item visible to students across the marketplace catalogs.</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="flex justify-end gap-4 pt-4 pb-12">
-            <button type="submit" class="bg-blue-600 text-white px-12 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 hover:bg-blue-700 transition-all active:scale-95">
+            <button type="submit" class="bg-blue-600 text-white px-12 py-4 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95 cursor-pointer">
                 Save and Continue to Curriculum
             </button>
         </div>
