@@ -8,7 +8,7 @@ urlpatterns = [
 
     # Course Catalog: Main landing page for all courses
     path('', views.course_list_view, name='course_list'),
-
+    path('player/toggle-sidebar/', views.toggle_sidebar_preference, name='toggle_sidebar_preference'),
     # Student Enrollments: List of courses the current user is taking
     path('my-learning/', views.my_courses_view, name='my_courses'),
 

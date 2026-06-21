@@ -215,6 +215,7 @@ def course_player_view(request, slug, lesson_id=None):
         'next_lesson': next_lesson, 'prev_lesson': prev_lesson,
         'completed_lesson_ids': completed_lesson_ids,
         'passed_quiz_ids': passed_quiz_ids, 'progress': progress,
+        'sidebar_minimized': request.session.get('sidebar_minimized', False),
     }
     return render(request, 'courses/course_player.html', context)
 
@@ -451,3 +452,15 @@ def download_certificate(request, course_slug):
     p.save()
     buffer.seek(0)
     return FileResponse(buffer, as_attachment=True, filename=f'Certificate_{course_slug}.pdf')
+
+@login_required
+@require_POST
+def toggle_sidebar_preference(request):
+    """Saves the user's minimized/maximized sidebar preference to their session context."""
+    try:
+        data = json.loads(request.body)
+        is_minimized = data.get('is_minimized', False)
+        request.session['sidebar_minimized'] = is_minimized
+        return JsonResponse({'status': 'success', 'sidebar_minimized': is_minimized})
+    except Exception:
+        return JsonResponse({'status': 'error'}, status=400)
