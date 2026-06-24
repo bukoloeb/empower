@@ -3,18 +3,17 @@ import json
 import os
 import mimetypes
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, FileResponse, HttpResponse
-from django.db.models import Count
-from django.utils import timezone
-from django.contrib import messages
+from django.db.models import Count, Q
 
 # ReportLab Imports for Certificates
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib.units import inch
-from reportlab.lib.colors import blue, HexColor
+from reportlab.lib.colors import HexColor
 
 # Models and Forms
 from .models import (
@@ -52,11 +51,9 @@ def lesson_video_stream(request, lesson_id):
     content_type, _ = mimetypes.guess_type(video_path)
     content_type = content_type or 'video/mp4'
 
-    # Using a context-independent open to prevent premature closing
     file_handle = open(video_path, 'rb')
     response = RangedFileResponse(request, file_handle, content_type=content_type)
 
-    # Explicitly set headers to help Ubuntu Chrome
     response['Content-Type'] = content_type
     response['Accept-Ranges'] = 'bytes'
     response['Content-Disposition'] = 'inline'
@@ -68,18 +65,14 @@ def check_course_completion(user, course):
     """Determines if a student has finished all requirements for a course."""
     total_lessons = Lesson.objects.filter(module__course=course).count()
     completed_lessons = LessonCompletion.objects.filter(student=user, lesson__module__course=course).count()
-
-    # Use the explicit related_name for safety
     total_quizzes = Quiz.objects.filter(course=course).count()
 
-    # Intelligently query DISTINCT quizzes passed (ignoring multiple attempts)
     passed_quizzes = QuizSubmission.objects.filter(
         student=user,
         quiz__course=course,
         passed=True
     ).values('quiz').distinct().count()
 
-    # If they completed all lessons AND passed all available quizzes
     if total_lessons > 0 and completed_lessons >= total_lessons and passed_quizzes >= total_quizzes:
         enrollment = Enrollment.objects.filter(student=user, course=course).first()
         if enrollment and not enrollment.is_completed:
@@ -94,7 +87,10 @@ def check_course_completion(user, course):
 def course_list_view(request):
     """Displays all published courses with category, level, and search filtering."""
     courses = Course.objects.filter(is_published=True).select_related('category')
-    categories = Category.objects.all()
+
+    categories = Category.objects.annotate(
+        published_course_count=Count('courses', filter=Q(courses__is_published=True))
+    ).filter(published_course_count__gt=0)
 
     category_slug = request.GET.get('category')
     level = request.GET.get('level')
@@ -149,7 +145,7 @@ def course_detail_view(request, slug):
 @login_required
 @require_POST
 def enroll_view(request, slug):
-    """Enrolls the user and redirects them to the player."""
+    """Enrolls the user and redirects them straight to the player learning space."""
     course = get_object_or_404(Course, slug=slug)
     Enrollment.objects.get_or_create(student=request.user, course=course)
     return redirect('course_player', slug=course.slug)
@@ -157,8 +153,7 @@ def enroll_view(request, slug):
 
 @login_required
 def my_courses_view(request):
-    """Enhanced dashboard containing analytics sidebar, certificates, and marketplace recommendations."""
-    # 1. Fetch user's active enrollments
+    """Enhanced dashboard containing analytics sidebar and user progress maps."""
     enrollments = Enrollment.objects.filter(student=request.user).select_related('course', 'course__category')
 
     enrolled_courses_data = []
@@ -171,8 +166,6 @@ def my_courses_view(request):
         completed_lessons = LessonCompletion.objects.filter(student=request.user, lesson__module__course=course).count()
 
         progress = int((completed_lessons / total_lessons) * 100) if total_lessons > 0 else 0
-
-        # Override structural completion state dynamically if records out of sync
         is_finished = enrollment.is_completed or (progress == 100 and total_lessons > 0)
 
         item = {
@@ -188,7 +181,6 @@ def my_courses_view(request):
         else:
             pending_courses.append(item)
 
-    # 2. Fetch suggested marketplace items that the user hasn't enrolled in yet
     enrolled_ids = enrollments.values_list('course_id', flat=True)
     suggested_courses = Course.objects.filter(is_published=True).exclude(id__in=enrolled_ids).select_related(
         'category')[:4]
@@ -207,31 +199,19 @@ def my_courses_view(request):
 
 @login_required
 def course_player_view(request, slug, lesson_id=None):
-    """Main learning interface with robust content discovery and progress tracking."""
+    """Main learning interface with strict automated sequential gating flow."""
     course = get_object_or_404(Course, slug=slug)
-
-    if not Enrollment.objects.filter(student=request.user, course=course).exists():
-        return redirect('course_detail', slug=slug)
+    enrollment = get_object_or_404(Enrollment, student=request.user, course=course)
 
     modules = course.modules.prefetch_related('lessons', 'quizzes').all()
+    all_lessons = list(Lesson.objects.filter(module__course=course).order_by('module__order', 'order'))
 
-    # robustly find current lesson (scan all modules if none specified)
-    if lesson_id:
-        current_lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
-    else:
-        current_lesson = None
-        for module in modules:
-            lesson = module.lessons.order_by('order').first()
-            if lesson:
-                current_lesson = lesson
-                break
-
-    if not current_lesson:
+    if not all_lessons:
         messages.warning(request, "This course has no lessons available yet.")
         return redirect('course_detail', slug=course.slug)
 
-    # Fetch Progress Data
-    completed_lesson_ids = list(LessonCompletion.objects.filter(
+    # Fetch normalized completion trackers matching direct student foreign keys
+    completed_lesson_ids = set(LessonCompletion.objects.filter(
         student=request.user, lesson__module__course=course
     ).values_list('lesson_id', flat=True))
 
@@ -239,17 +219,31 @@ def course_player_view(request, slug, lesson_id=None):
         student=request.user, quiz__course=course, passed=True
     ).values_list('quiz_id', flat=True))
 
-    # Navigation Logic
-    all_lessons = list(Lesson.objects.filter(module__course=course).order_by('module__order', 'order'))
-    next_lesson = prev_lesson = None
-    try:
-        idx = all_lessons.index(current_lesson)
-        if idx < len(all_lessons) - 1: next_lesson = all_lessons[idx + 1]
-        if idx > 0: prev_lesson = all_lessons[idx - 1]
-    except ValueError:
-        pass
+    # Resolve active lesson target pointer
+    if lesson_id:
+        current_lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
+    else:
+        current_lesson = next((l for l in all_lessons if l.id not in completed_lesson_ids), all_lessons[0])
+        return redirect('course_player', slug=course.slug, lesson_id=current_lesson.id)
 
-    # YouTube URL Formatting
+    # ENFORCE SEQUENTIAL SECURITY GATING
+    active_idx = all_lessons.index(current_lesson)
+    if active_idx > 0:
+        previous_lesson = all_lessons[active_idx - 1]
+        if previous_lesson.id not in completed_lesson_ids:
+            messages.warning(request,
+                             f"Please complete the previous lesson '{previous_lesson.title}' before moving forward!")
+            current_spot = next((l for l in all_lessons if l.id not in completed_lesson_ids), all_lessons[0])
+            return redirect('course_player', slug=course.slug, lesson_id=current_spot.id)
+
+    # Setup sibling navigation flags
+    next_lesson = all_lessons[active_idx + 1] if active_idx < len(all_lessons) - 1 else None
+    prev_lesson = all_lessons[active_idx - 1] if active_idx > 0 else None
+
+    # Quiz Access logic: fully gated until all lessons are cleared
+    all_lessons_completed = len(completed_lesson_ids) >= len(all_lessons)
+
+    # Format YouTube embed configurations seamlessly
     if current_lesson.video_url:
         url = current_lesson.video_url
         if "watch?v=" in url:
@@ -266,9 +260,37 @@ def course_player_view(request, slug, lesson_id=None):
         'next_lesson': next_lesson, 'prev_lesson': prev_lesson,
         'completed_lesson_ids': completed_lesson_ids,
         'passed_quiz_ids': passed_quiz_ids, 'progress': progress,
+        'all_lessons_completed': all_lessons_completed,
         'sidebar_minimized': request.session.get('sidebar_minimized', False),
     }
     return render(request, 'courses/course_player.html', context)
+
+
+@login_required
+@require_POST
+def mark_lesson_complete(request, lesson_id):
+    """UNIFIED API endpoint triggered automatically by JS trackers to record progress."""
+    lesson = get_object_or_404(Lesson, id=lesson_id)
+    enrollment = Enrollment.objects.filter(student=request.user, course=lesson.module.course).first()
+
+    if not enrollment:
+        return JsonResponse({'status': 'error', 'message': 'Not enrolled in this course.'}, status=403)
+
+    # Map cleanly to unified student structure attributes
+    LessonCompletion.objects.get_or_create(student=request.user, lesson=lesson)
+    course_completed = check_course_completion(request.user, lesson.module.course)
+
+    total_lessons = Lesson.objects.filter(module__course=lesson.module.course).count()
+    completed_count = LessonCompletion.objects.filter(student=request.user,
+                                                      lesson__module__course=lesson.module.course).count()
+    progress_percent = int((completed_count / total_lessons) * 100) if total_lessons > 0 else 0
+
+    return JsonResponse({
+        'status': 'success',
+        'course_completed': course_completed,
+        'progress': progress_percent,
+        'message': 'Progress logged successfully.'
+    })
 
 
 @login_required
@@ -307,27 +329,6 @@ def take_quiz_view(request, quiz_id):
         })
 
     return render(request, 'courses/take_quiz.html', {'quiz': quiz})
-
-
-@login_required
-@require_POST
-def mark_lesson_complete(request, lesson_id):
-    """AJAX endpoint for marking lesson progress."""
-    lesson = get_object_or_404(Lesson, id=lesson_id)
-    LessonCompletion.objects.get_or_create(student=request.user, lesson=lesson)
-
-    course = lesson.module.course
-    course_completed = check_course_completion(request.user, course)
-
-    total_lessons = Lesson.objects.filter(module__course=course).count()
-    completed_count = LessonCompletion.objects.filter(student=request.user, lesson__module__course=course).count()
-    progress_percent = int((completed_count / total_lessons) * 100) if total_lessons > 0 else 0
-
-    return JsonResponse({
-        'status': 'success',
-        'course_completed': course_completed,
-        'progress': progress_percent
-    })
 
 
 # --- EDUCATOR MANAGEMENT VIEWS ---
@@ -479,28 +480,21 @@ def reorder_questions_view(request, quiz_id):
 
 @login_required
 def download_certificate(request, course_slug):
-    # 1. Fetch the enrollment framework safely
     course = get_object_or_404(Course, slug=course_slug)
     enrollment = get_object_or_404(Enrollment, student=request.user, course=course)
 
-    # 2. If it isn't marked complete yet, let's run an live check right now
     if not enrollment.is_completed:
         is_now_complete = check_course_completion(request.user, course)
         if not is_now_complete:
-            # If they genuinely haven't finished, send them back to the player with an error toast
             messages.error(request,
                            "You haven't completed all required lessons and assessments for this certificate yet.")
             return redirect('course_player', slug=course.slug)
-
-        # Refresh state from database update
         enrollment.refresh_from_db()
 
-    # 3. Generate ReportLab Certificate Document
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=landscape(A4))
     width, height = landscape(A4)
 
-    # Clean styling border lines
     p.setStrokeColor(HexColor('#2563eb'))
     p.setLineWidth(5)
     p.rect(0.2 * inch, 0.2 * inch, width - 0.4 * inch, height - 0.4 * inch)
@@ -512,7 +506,6 @@ def download_certificate(request, course_slug):
     p.drawCentredString(width / 2, height - 2.5 * inch, "This is to certify that")
 
     p.setFont("Helvetica-Bold", 32)
-    # Safely get full name, fallback to username or email identity
     user_display_name = request.user.get_full_name() or request.user.username or request.user.email
     p.drawCentredString(width / 2, height - 3.5 * inch, f"{user_display_name}")
 
@@ -524,6 +517,7 @@ def download_certificate(request, course_slug):
     buffer.seek(0)
 
     return FileResponse(buffer, as_attachment=True, filename=f'Certificate_{course_slug}.pdf')
+
 
 @login_required
 @require_POST

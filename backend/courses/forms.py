@@ -62,8 +62,8 @@ class CourseForm(forms.ModelForm):
 class LessonForm(forms.ModelForm):
     class Meta:
         model = Lesson
-        # Enforce exact match for 'is_preview' right here
-        fields = ['title', 'content_type', 'video_url', 'video_file', 'text_content', 'is_preview']
+        # FIXED: restored 'pdf_file' to the field configuration array matrix
+        fields = ['title', 'content_type', 'video_url', 'video_file', 'pdf_file', 'text_content', 'is_preview']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -89,6 +89,11 @@ class LessonForm(forms.ModelForm):
         })
         self.fields['video_file'].widget.attrs.update({
             'class': 'block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:tracking-wider file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 transition-colors cursor-pointer'
+        })
+
+        # FIXED: Explicit style binding setup for the PDF upload selector target button
+        self.fields['pdf_file'].widget.attrs.update({
+            'class': 'block w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:tracking-wider file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100 transition-colors cursor-pointer'
         })
 
         # Connect explicitly to the is_preview checkbox layout

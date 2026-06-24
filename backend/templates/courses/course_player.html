@@ -3,52 +3,91 @@
 {% block content %}
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
-<div class="flex flex-col lg:flex-row h-[calc(100vh-64px)] -mt-8 -mx-4 sm:-mx-6 lg:-mx-8 bg-white overflow-hidden relative">
+<div class="flex flex-col lg:flex-row h-[calc(100vh-64px)] -mt-8 -mx-4 sm:-mx-6 lg:-mx-8 bg-slate-50 overflow-hidden relative">
 
-    <div class="flex-1 flex flex-col overflow-y-auto custom-scrollbar bg-white border-r border-gray-200">
+    <div class="flex-1 flex flex-col overflow-y-auto bg-white" id="main-content-scrollpane">
 
-        {% if current_lesson.content_type == 'VIDEO' and current_lesson.video_url or current_lesson.video_file %}
-            <div class="relative w-full aspect-video bg-black shadow-sm flex-shrink-0">
-                {% if current_lesson.video_url %}
-                    <iframe class="absolute inset-0 w-full h-full" src="{{ current_lesson.video_url }}" frameborder="0" allowfullscreen></iframe>
-                {% elif current_lesson.video_file %}
-                    <video id="lessonVideo" class="absolute inset-0 w-full h-full"
-                           controls
-                           preload="metadata"
-                           playsinline>
-                        <source src="{% url 'lesson_video_stream' current_lesson.id %}" type="video/mp4">
-                        Your browser does not support the video tag.
-                    </video>
-                {% endif %}
-            </div>
+        {% if current_lesson.content_type == 'VIDEO' or current_lesson.content_type == 'V' %}
+            {% if current_lesson.video_url or current_lesson.video_file %}
+                <div class="relative w-full aspect-video bg-black shadow-sm flex-shrink-0 border-b border-slate-900">
+                    {% if current_lesson.video_url %}
+                        <iframe class="absolute inset-0 w-full h-full" src="{{ current_lesson.video_url }}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    {% elif current_lesson.video_file %}
+                        <video id="lessonVideo" class="absolute inset-0 w-full h-full"
+                               controls
+                               preload="metadata"
+                               controlsList="nodownload"
+                               playsinline>
+                            <source src="{% url 'lesson_video_stream' current_lesson.id %}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endif %}
+                </div>
+            {% endif %}
         {% endif %}
 
         <div class="p-8 lg:p-12 max-w-4xl mx-auto w-full flex-1">
-            <h1 class="text-3xl font-black text-gray-900 mb-6 tracking-tight leading-tight">{{ current_lesson.title }}</h1>
+            <span class="text-[9px] font-black text-blue-600 uppercase tracking-widest block mb-1">Active Curriculum Lesson</span>
+            <h1 class="text-3xl font-black text-slate-900 mb-6 tracking-tight leading-tight">{{ current_lesson.title }}</h1>
 
-            <div class="prose prose-blue prose-sm max-w-none text-gray-700 leading-relaxed">
-                {{ current_lesson.text_content|safe }}
+            <div class="mb-8">
+                {% if current_lesson.content_type == 'PDF' or current_lesson.content_type == 'P' %}
+                    <div class="space-y-4">
+                        <div class="w-full h-[600px] bg-slate-100 rounded-2xl border-2 border-slate-200 p-1 relative shadow-sm">
+                            {% if current_lesson.pdf_file %}
+                                <embed src="{{ current_lesson.pdf_file.url }}#toolbar=0&navpanes=0" type="application/pdf" class="w-full h-full rounded-xl">
+                                <div id="pdf-view-trigger-bar" class="absolute bottom-4 left-1/2 -translate-x-1/2 bg-slate-950/90 text-white text-[10px] font-black px-6 py-3 rounded-full shadow-xl uppercase tracking-widest backdrop-blur-sm border border-slate-800">
+                                    Reviewing Reference Document...
+                                </div>
+                            {% else %}
+                                <div class="w-full h-full flex flex-col items-center justify-center text-center p-6">
+                                    <p class="text-sm font-bold text-slate-500">No PDF document attached to this lesson asset matrix.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if current_lesson.pdf_file %}
+                            <div class="flex justify-end">
+                                <a href="{{ current_lesson.pdf_file.url }}" download
+                                   class="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-black uppercase tracking-wider text-[10px] px-5 py-3 rounded-xl border border-slate-300 shadow-sm transition-all">
+                                    <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12l-4.5 4.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+                                    Download PDF Reference
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <div id="automated-text-canvas" class="prose prose-slate prose-sm max-w-none text-slate-700 leading-relaxed font-medium">
+                        {{ current_lesson.text_content|safe }}
+                    </div>
+                {% endif %}
             </div>
 
-            {% if current_lesson.content_type != 'VIDEO' and current_lesson.id not in completed_lesson_ids %}
-                <div class="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between" id="textCompletionCard">
-                    <span class="text-xs font-bold text-blue-900">Finished reading this module resource?</span>
-                    <button onclick="markTextLessonComplete()" class="bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-wider text-[10px] px-4 py-2 rounded-lg shadow transition-colors">
+            {% if current_lesson.id not in completed_lesson_ids %}
+                <div class="mt-12 p-5 bg-emerald-50 border-2 border-emerald-200 rounded-2xl flex items-center justify-between shadow-sm transition-all hidden animate-fade-in" id="textCompletionCard">
+                    <div>
+                        <span class="text-xs font-black text-emerald-900 block uppercase tracking-wide">✓ Content Requirements Satisfied</span>
+                        <span class="text-[10px] text-slate-500 font-bold block mt-0.5">You have fully reviewed this module. Lock in your progress below.</span>
+                    </div>
+                    <button onclick="markTextLessonComplete()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[10px] px-5 py-3 rounded-xl border border-emerald-700 shadow-md transition-all active:scale-95 cursor-pointer">
                         Mark as Completed
                     </button>
                 </div>
             {% endif %}
 
-            <div class="mt-16 pt-8 border-t border-gray-200 flex justify-between items-center mb-20">
+            <div class="mt-16 pt-8 border-t border-slate-200 flex justify-between items-center mb-20">
                 {% if prev_lesson %}
-                    <a href="{% url 'course_player_lesson' course.slug prev_lesson.id %}" class="text-[10px] font-black text-gray-500 uppercase tracking-widest hover:text-blue-600 transition flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"/></svg> Prev
+                    <a href="{% url 'course_player' course.slug prev_lesson.id %}" class="text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-blue-600 transition flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg> Prev Lesson
                     </a>
                 {% else %}<div></div>{% endif %}
 
                 {% if next_lesson %}
-                    <a id="nextLessonBtn" href="{% url 'course_player_lesson' course.slug next_lesson.id %}" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-700 transition shadow-lg flex items-center gap-2">
-                        Next Lesson <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7"/></svg>
+                    <a id="nextLessonBtn"
+                       href="{% url 'course_player' course.slug next_lesson.id %}"
+                       class="bg-slate-950 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 border border-slate-900 transition shadow-md flex items-center gap-2 cursor-pointer
+                       {% if current_lesson.id not in completed_lesson_ids %} opacity-40 pointer-events-none cursor-not-allowed bg-slate-300 border-transparent {% endif %}">
+                        Next Lesson <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
                     </a>
                 {% endif %}
             </div>
@@ -57,7 +96,7 @@
 
     <button id="sidebarCollapseToggle"
             onclick="togglePlayerSidebar()"
-            class="hidden lg:flex absolute right-0 top-4 z-50 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-l-md shadow-md items-center justify-center transition-all duration-300"
+            class="hidden lg:flex absolute right-0 top-4 z-40 bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-l-xl shadow-md items-center justify-center transition-all duration-300 border-l border-y border-blue-700 outline-none cursor-pointer"
             style="margin-right: {% if sidebar_minimized %}0px{% else %}320px{% endif %}; width: 36px; height: 36px;">
         <svg id="toggleButtonIcon" class="w-5 h-5 transform transition-transform duration-300 {% if not sidebar_minimized %}rotate-180{% endif %}" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -65,42 +104,42 @@
     </button>
 
     <aside id="playerSidebarContainer"
-           class="w-full lg:w-80 border-l border-gray-200 flex flex-col transition-all duration-300 origin-right overflow-hidden"
-           style="background-color: #f3f4f6 !important; width: {% if sidebar_minimized %}0px{% else %}320px{% endif %}; min-width: {% if sidebar_minimized %}0px{% else %}320px{% endif %}; opacity: {% if sidebar_minimized %}0{% else %}1{% endif %};">
+           class="w-full lg:w-80 border-l border-slate-200 flex flex-col transition-all duration-300 origin-right overflow-hidden bg-slate-50 shadow-xl"
+           style="width: {% if sidebar_minimized %}0px{% else %}320px{% endif %}; min-width: {% if sidebar_minimized %}0px{% else %}320px{% endif %}; opacity: {% if sidebar_minimized %}0{% else %}1{% endif %};">
 
-        <div class="p-6 border-b border-gray-300 bg-white shadow-sm z-20" style="background-color: #ffffff !important; border-bottom: 2px solid #cbd5e1 !important;">
+        <div class="p-6 bg-white border-b border-slate-200 shadow-sm z-20 flex-shrink-0">
             <div class="flex justify-between items-end mb-2">
-                <span class="text-[10px] font-black uppercase tracking-widest" style="color: #1e293b !important;">Course Progress</span>
-                <span class="text-[11px] font-black" style="color: #2563eb !important;"><span id="progressText">{{ progress|default:0 }}</span>%</span>
+                <span class="text-[10px] font-black uppercase tracking-widest text-slate-900">Course Progress</span>
+                <span class="text-[11px] font-black text-blue-600"><span id="progressText">{{ progress|default:0 }}</span>%</span>
             </div>
-            <div class="w-full h-3 rounded-full overflow-hidden" style="background-color: #cbd5e1 !important; border: 1px solid #94a3b8 !important;">
-                <div id="sidebarProgressBar" class="h-full transition-all duration-1000 rounded-full" style="width: {{ progress|default:0 }}%; background-color: #2563eb !important;"></div>
+            <div class="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200 shadow-inner">
+                <div id="sidebarProgressBar" class="h-full transition-all duration-1000 rounded-full bg-blue-600" style="width: {{ progress|default:0 }}%;"></div>
             </div>
         </div>
 
-        <div class="flex-1 overflow-y-auto divide-y divide-gray-200" style="background-color: #f8fafc !important;">
+        <div class="flex-1 overflow-y-auto divide-y divide-slate-200">
             {% for module in modules %}
-                <div class="px-5 py-4 flex flex-col border-b sticky top-0 z-10 backdrop-blur-md" style="background-color: #e2e8f0 !important; border-bottom: 1px solid #cbd5e1 !important;">
-                    <span class="text-[8px] font-black uppercase tracking-tighter mb-0.5" style="color: #1d4ed8 !important;">Section {{ forloop.counter }}</span>
-                    <h4 class="text-[11px] font-black uppercase tracking-tight" style="color: #0f172a !important;">{{ module.title }}</h4>
+                <div class="px-5 py-3.5 flex flex-col border-b sticky top-0 z-10 bg-slate-100/95 backdrop-blur-sm border-b border-slate-200">
+                    <span class="text-[8px] font-black uppercase tracking-wider text-blue-600">Section {{ forloop.counter }}</span>
+                    <h4 class="text-[11px] font-black uppercase tracking-tight text-slate-800 line-clamp-1">{{ module.title }}</h4>
                 </div>
 
                 {% for lesson in module.lessons.all %}
-                    <a href="{% url 'course_player_lesson' course.slug lesson.id %}"
-                       class="flex items-start gap-4 px-6 py-4 transition-all border-l-4 min-h-[48px]"
-                       style="{% if current_lesson.id == lesson.id %}background-color: #eff6ff !important; border-left-color: #2563eb !important; color: #1e3a8a !important; font-weight: 900 !important;{% else %}background-color: #ffffff !important; border-left-color: transparent !important; color: #0f172a !important; font-weight: 700 !important;{% endif %} border-bottom: 1px solid #f1f5f9 !important;">
+                    <a href="{% url 'course_player' course.slug lesson.id %}"
+                       class="flex items-start gap-4 px-6 py-4 transition-all border-b border-slate-100 min-h-[48px] border-l-4
+                       {% if current_lesson.id == lesson.id %} bg-blue-600 border-l-slate-900 text-white font-black shadow-inner {% else %} bg-white border-l-transparent text-slate-700 hover:bg-slate-50 font-bold {% endif %}">
 
                         <div class="w-4 flex-shrink-0 mt-0.5 text-center">
                             {% if lesson.id in completed_lesson_ids %}
-                                <svg class="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 20 20" style="color: #16a34a !important;">
+                                <svg class="w-4 h-4 mx-auto {% if current_lesson.id == lesson.id %} text-white {% else %} text-emerald-600 {% endif %}" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
                                 </svg>
                             {% else %}
-                                <div class="w-3.5 h-3.5 rounded-full mx-auto" style="border: 2px solid #64748b !important; background-color: #ffffff !important;"></div>
+                                <div class="w-3.5 h-3.5 rounded-full mx-auto border-2 {% if current_lesson.id == lesson.id %} border-white/60 bg-transparent {% else %} border-slate-300 bg-white {% endif %}"></div>
                             {% endif %}
                         </div>
 
-                        <span class="text-[11px] leading-tight tracking-tight break-words pr-1">
+                        <span class="text-[11px] leading-tight tracking-tight break-words pr-1 flex-1">
                             {{ lesson.title }}
                         </span>
                     </a>
@@ -108,14 +147,15 @@
 
                 {% for quiz in module.quizzes.all %}
                     <a href="{% url 'take_quiz' quiz.id %}"
-                       class="flex items-start gap-4 px-6 py-4 border-l-4 text-[10px] font-black uppercase tracking-tight"
-                       style="{% if quiz.id in passed_quiz_ids %}border-left-color: #16a34a !important; background-color: #f0fdf4 !important; color: #14532d !important;{% else %}border-left-color: #d97706 !important; background-color: #fffbeb !important; color: #78350f !important;{% endif %} border-bottom: 1px solid #f1f5f9 !important;">
+                       class="flex items-start gap-4 px-6 py-4 border-l-4 text-[10px] font-black uppercase tracking-wider border-b border-slate-200 transition-colors
+                       {% if quiz.id in passed_quiz_ids %} border-l-emerald-600 bg-emerald-50 text-emerald-900 {% else %} border-l-amber-500 bg-amber-50 text-amber-950 hover:bg-amber-100/60 {% endif %}
+                       {% if not all_lessons_completed %} opacity-40 pointer-events-none cursor-not-allowed {% endif %}">
                         <div class="w-4 flex-shrink-0 mt-0.5 text-center">
-                            <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="stroke-width: 3px !important;">
+                            <svg class="w-4 h-4 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2-0 00-2 2v12a2 2-0 002 2h10a2 2-0 002-2V7a2 2-0 00-2-2h-2M9 5a2 2-0 002 2h2a2 2-0 002-2M9 5a2 2-0 012-2h2a2 2-0 012 2"></path>
                             </svg>
                         </div>
-                        <span>{{ quiz.title }}</span>
+                        <span class="flex-1 truncate">{{ quiz.title }} {% if not all_lessons_completed %}(Locked){% endif %}</span>
                     </a>
                 {% endfor %}
             {% endfor %}
@@ -123,10 +163,39 @@
     </aside>
 </div>
 
+<div id="quizPromptModal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 hidden">
+    <div class="bg-white border-2 border-slate-900 w-full max-w-md rounded-3xl p-6 shadow-2xl transform scale-95 transition-all duration-300 animate-fade-in">
+        <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center mb-4 border border-amber-300 text-amber-700 shadow-sm">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9 5.25h.008v.008H12v-.008z"/></svg>
+        </div>
+        <h3 class="text-base font-black text-slate-900 uppercase tracking-tight mb-1">Module Quiz Ready!</h3>
+        <p class="text-xs font-semibold text-slate-500 leading-relaxed mb-6">Excellent job clearing this curriculum section. Would you like to enter and complete the evaluation quiz assessment right now?</p>
+        <div class="flex gap-3 justify-end">
+            <button onclick="dismissQuizPrompt(false)" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-black uppercase tracking-wider rounded-xl border border-slate-300 transition-all cursor-pointer">
+                Skip For Now
+            </button>
+            <button onclick="dismissQuizPrompt(true)" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider rounded-xl border border-blue-700 shadow-md transition-all cursor-pointer">
+                Yes, Start Quiz
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
     const completeUrl = "{% if current_lesson %}{% url 'mark_lesson_complete' current_lesson.id %}{% endif %}";
-    let completedInSession = false;
+    let completedInSession = {% if current_lesson.id in completed_lesson_ids %} true {% else %} false {% endif %};
     let isSidebarCollapsed = {% if sidebar_minimized %}true{% else %}false{% endif %};
+
+    let nextQuizUrl = null;
+    {% if all_lessons_completed %}
+        {% for module in modules %}
+            {% for quiz in module.quizzes.all %}
+                {% if forloop.parentloop.parentloop.first and forloop.first %}
+                    nextQuizUrl = "{% url 'take_quiz' quiz.id %}";
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    {% endif %}
 
     function togglePlayerSidebar() {
         const sidebar = document.getElementById('playerSidebarContainer');
@@ -151,12 +220,9 @@
 
         fetch("{% url 'toggle_sidebar_preference' %}", {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            },
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
             body: JSON.stringify({ 'is_minimized': isSidebarCollapsed })
-        }).catch(err => console.log('Sidebar sync hidden:', err));
+        }).catch(err => console.log('Sidebar preference failed to sync sync:', err));
     }
 
     function updateProgressBar(percent) {
@@ -168,45 +234,122 @@
         }
     }
 
-    // Combined function used by both video triggers and manually clicked text modules
     function triggerAutoCompletion() {
         if (!completeUrl || completedInSession) return;
+        completedInSession = true;
+
         fetch(completeUrl, {
             method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'Content-Type': 'application/json'
-            }
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                completedInSession = true;
                 updateProgressBar(data.progress);
 
-                // Hide the text tracking card if it's currently on screen
                 const card = document.getElementById('textCompletionCard');
                 if (card) card.style.display = 'none';
 
+                const nextBtn = document.getElementById('nextLessonBtn');
+                if (nextBtn) {
+                    nextBtn.classList.remove('opacity-40', 'pointer-events-none', 'cursor-not-allowed', 'bg-slate-300');
+                    nextBtn.classList.add('bg-slate-950', 'hover:bg-blue-600', 'border-slate-900');
+                }
+
                 if (data.course_completed) {
-                    confetti({
-                        particleCount: 200,
-                        spread: 80,
-                        origin: { y: 0.6 }
-                    });
+                    confetti({ particleCount: 200, spread: 80, origin: { y: 0.6 } });
+                }
+
+                if (data.progress === 100 || nextQuizUrl) {
+                    showQuizInterceptionModal();
+                }
+            } else {
+                completedInSession = false;
+            }
+        }).catch(err => {
+            completedInSession = false;
+            console.error('Progress API Transaction broke:', err);
+        });
+    }
+
+    function showQuizInterceptionModal() {
+        if (nextQuizUrl) {
+            document.getElementById('quizPromptModal').classList.remove('hidden');
+        }
+    }
+
+    function dismissQuizPrompt(wantsQuiz) {
+        document.getElementById('quizPromptModal').classList.add('hidden');
+        if (wantsQuiz && nextQuizUrl) {
+            window.location.href = nextQuizUrl;
+        } else {
+            const nextBtn = document.getElementById('nextLessonBtn');
+            if (nextBtn) nextBtn.click();
+        }
+    }
+
+    function revealCompletionCard() {
+        const card = document.getElementById('textCompletionCard');
+        if (card && !completedInSession) {
+            card.classList.remove('hidden');
+        }
+    }
+
+    function markTextLessonComplete() {
+        triggerAutoCompletion();
+    }
+
+    // LISTENER HOOK A: Video element monitors
+    const videoElem = document.getElementById('lessonVideo');
+    if (videoElem) {
+        videoElem.onended = function() { triggerAutoCompletion(); };
+    }
+
+    // LISTENER HOOK B: Scroll Tracker (Triggers card reveal after bottom bounds + 10s delay)
+    const scrollPane = document.getElementById('main-content-scrollpane');
+    if (scrollPane) {
+        let timeSpent = 0;
+        let hasScrolledToBottom = false;
+
+        const readingInterval = setInterval(() => {
+            if (!completedInSession) {
+                timeSpent++;
+                if (timeSpent >= 10 && hasScrolledToBottom) {
+                    clearInterval(readingInterval);
+                    revealCompletionCard();
+                }
+            } else {
+                clearInterval(readingInterval);
+            }
+        }, 1000);
+
+        scrollPane.addEventListener('scroll', function() {
+            const threshold = scrollPane.scrollHeight - scrollPane.clientHeight - 120;
+            if (scrollPane.scrollTop >= threshold) {
+                hasScrolledToBottom = true;
+                if (timeSpent >= 10) {
+                    clearInterval(readingInterval);
+                    revealCompletionCard();
                 }
             }
         });
     }
 
-    // Direct invocation link handler for non-video text modules
-    function markTextLessonComplete() {
-        triggerAutoCompletion();
-    }
-
-    const videoElem = document.getElementById('lessonVideo');
-    if (videoElem) {
-        videoElem.onended = function() { triggerAutoCompletion(); };
+    // LISTENER HOOK C: PDF Timeout Tracker
+    const pdfTriggerBar = document.getElementById('pdf-view-trigger-bar');
+    if (pdfTriggerBar) {
+        let remainingSeconds = 8;
+        const trackingTimer = setInterval(() => {
+            remainingSeconds--;
+            pdfTriggerBar.innerText = `Reviewing Document (Processing in ${remainingSeconds}s)...`;
+            
+            if (remainingSeconds <= 0) {
+                clearInterval(trackingTimer);
+                pdfTriggerBar.innerText = "Document Reviewed ✓";
+                pdfTriggerBar.className = "absolute bottom-4 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[10px] font-black px-6 py-3 rounded-full shadow-xl uppercase tracking-widest";
+                triggerAutoCompletion();
+            }
+        }, 1000);
     }
 </script>
 {% endblock %}

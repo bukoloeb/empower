@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Local Django development settings / environment variables
-.env
+backend/.env
 .env.*
 db.sqlite3
 

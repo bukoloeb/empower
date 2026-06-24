@@ -95,21 +95,29 @@
         const textSection = document.getElementById('text-fields');
 
         function toggleSections() {
-            const value = typeSelect.value;
-            // Hide all components
+            if (!typeSelect) return;
+
+            // Normalize current selection string to uppercase to guarantee uniform model matches
+            const value = typeSelect.value.toUpperCase();
+
+            // 1. Hide all contextual elements by default
             [videoSection, pdfSection, textSection].forEach(el => {
                 if (el) el.classList.add('hidden');
             });
 
-            # Show contextually matched selection component block
-            if (value === 'VIDEO' && videoSection) videoSection.classList.remove('hidden');
-            else if (value === 'PDF' && pdfSection) pdfSection.classList.remove('hidden');
-            else if (value === 'TEXT' && textSection) textSection.classList.remove('hidden');
+            // 2. Un-hide the matched asset group block dynamically
+            if ((value === 'VIDEO' || value === 'V') && videoSection) {
+                videoSection.classList.remove('hidden');
+            } else if ((value === 'PDF' || value === 'P') && pdfSection) {
+                pdfSection.classList.remove('hidden');
+            } else if ((value === 'TEXT' || value === 'T' || value === 'ARTICLE') && textSection) {
+                textSection.classList.remove('hidden');
+            }
         }
 
         if (typeSelect) {
             typeSelect.addEventListener('change', toggleSections);
-            toggleSections(); // Run initial state alignment
+            toggleSections(); // Execute instant layout sync on load
         }
     });
 </script>

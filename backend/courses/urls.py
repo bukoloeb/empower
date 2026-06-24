@@ -9,6 +9,7 @@ urlpatterns = [
     # Course Catalog: Main landing page for all courses
     path('', views.course_list_view, name='course_list'),
     path('player/toggle-sidebar/', views.toggle_sidebar_preference, name='toggle_sidebar_preference'),
+
     # Student Enrollments: List of courses the current user is taking
     path('my-learning/', views.my_courses_view, name='my_courses'),
 
@@ -20,11 +21,10 @@ urlpatterns = [
 
     # --- Learning Interface (The Player) ---
 
-    # Player Home: Starts at the first available lesson
+    # FIXED: Both capture patterns now use the unified name 'course_player'
+    # Django will automatically resolve the correct template tag signature choice!
     path('<slug:slug>/learn/', views.course_player_view, name='course_player'),
-
-    # Player Lesson: Loads a specific lesson in the player
-    path('<slug:slug>/learn/<int:lesson_id>/', views.course_player_view, name='course_player_lesson'),
+    path('<slug:slug>/learn/<int:lesson_id>/', views.course_player_view, name='course_player'),
 
     # Completion Tracking: AJAX endpoint to mark a lesson as finished
     path('lesson/<int:lesson_id>/complete/', views.mark_lesson_complete, name='mark_lesson_complete'),
@@ -63,6 +63,7 @@ urlpatterns = [
     # Add Lesson: Create new content (Video/PDF/Text) inside a module
     path('module/<int:module_id>/lesson/add/', views.add_lesson_view, name='add_lesson'),
     path('video-stream/<int:lesson_id>/', views.lesson_video_stream, name='lesson_video_stream'),
+
     # Edit Lesson: Update content or change asset files
     path('lesson/<int:lesson_id>/edit/', views.edit_lesson_view, name='edit_lesson'),
 
