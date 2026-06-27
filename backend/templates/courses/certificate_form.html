@@ -1,0 +1,253 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto mt-4 mb-16 px-4">
+    
+    <div class="mb-8 flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+            <p class="text-[9px] font-black text-blue-600 uppercase tracking-[0.2em] mb-0.5">Syllabus Template Studio</p>
+            <h2 class="text-2xl font-black text-slate-900 tracking-tight">Certificate Settings</h2>
+            <p class="text-xs font-bold text-slate-500 mt-1 leading-normal">Course Asset: <span class="text-slate-800">{{ course.title }}</span></p>
+        </div>
+        <a href="{% url 'my_courses' %}" class="inline-flex items-center gap-2 border-2 border-slate-200 hover:border-slate-300 text-slate-700 font-black text-[10px] uppercase tracking-wider px-4 py-2.5 rounded-xl transition-all bg-white">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"/></svg>
+            Back to Hub
+        </a>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" id="certificateSetupForm" class="space-y-6">
+        {% csrf_token %}
+        {{ form.primary_signature_data }}
+        {{ form.secondary_signature_data }}
+
+        <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider mb-2 flex items-center gap-2">
+                <span class="w-1.5 h-3 bg-blue-600 rounded-full"></span> 1. Core Brand Logo Asset
+            </h3>
+            <p class="text-[10px] font-bold text-slate-500 mb-4 leading-normal">Upload your official center logo line matrix (PNG with clear background recommended).</p>
+
+            <div class="flex items-center gap-6">
+                <div class="w-24 h-16 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0" id="logoPreviewBox">
+                    {% if course.certificate_logo %}
+                        <img src="{{ course.certificate_logo.url }}" class="w-full h-full object-contain p-1">
+                    {% else %}
+                        <svg class="w-6 h-6 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H2.25A1.5 1.5 0 007 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375 3.375 0 11-.75 0 .375 3.375 0 01.75 0z"/></svg>
+                    {% endif %}
+                </div>
+                <div class="flex-1">
+                    {{ form.certificate_logo }}
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider mb-1 flex items-center gap-2">
+                        <span class="w-1.5 h-3 bg-slate-950 rounded-full"></span> 2. Primary Signatory (Right Side)
+                    </h3>
+                    <p class="text-[10px] font-bold text-slate-500 mb-4 leading-normal">Details for the primary authorizing entity row.</p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Full Legal Display Name</label>
+                            {{ form.primary_signatory_name }}
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Official Professional Title / Role</label>
+                            {{ form.primary_signatory_title }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Draw Physical Signature Below</label>
+                        <button type="button" onclick="clearCanvasPad('primarySigCanvas')" class="text-[8px] font-black uppercase text-rose-600 tracking-wider hover:underline bg-transparent border-none cursor-pointer outline-none">Clear Pad</button>
+                    </div>
+                    <div class="w-full h-32 bg-slate-50 border-2 border-slate-200 rounded-xl relative overflow-hidden shadow-inner cursor-crosshair">
+                        <canvas id="primarySigCanvas" class="absolute inset-0 w-full h-full touch-none"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between space-y-4">
+                <div>
+                    <h3 class="text-xs font-black text-slate-900 uppercase tracking-wider mb-1 flex items-center gap-2">
+                        <span class="w-1.5 h-3 bg-sky-500 rounded-full"></span> 3. Secondary Signatory (Left Side)
+                    </h3>
+                    <p class="text-[10px] font-bold text-slate-500 mb-4 leading-normal">Details for the endorsing partner academy authority entity row.</p>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Full Legal Display Name</label>
+                            {{ form.secondary_signatory_name }}
+                        </div>
+                        <div>
+                            <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Official Professional Title / Role</label>
+                            {{ form.secondary_signatory_title }}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t border-slate-100">
+                    <div class="flex justify-between items-center mb-1.5">
+                        <label class="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Draw Physical Signature Below</label>
+                        <button type="button" onclick="clearCanvasPad('secondarySigCanvas')" class="text-[8px] font-black uppercase text-rose-600 tracking-wider hover:underline bg-transparent border-none cursor-pointer outline-none">Clear Pad</button>
+                    </div>
+                    <div class="w-full h-32 bg-slate-50 border-2 border-slate-200 rounded-xl relative overflow-hidden shadow-inner cursor-crosshair">
+                        <canvas id="secondarySigCanvas" class="absolute inset-0 w-full h-full touch-none"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="pt-4 border-t border-slate-200 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <a href="{% url 'download_certificate' course.slug %}?preview=true"
+                   target="_blank"
+                   class="inline-flex items-center gap-2 px-5 py-3 border-2 border-blue-200 hover:border-blue-300 bg-blue-50 text-blue-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all">
+                    <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    Preview Certificate Layout
+                </a>
+            </div>
+
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <a href="{% url 'my_courses' %}" class="px-5 py-3 border-2 border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all">Cancel</a>
+                <button type="submit" class="w-full sm:w-auto px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 text-xs font-black uppercase tracking-widest rounded-xl shadow-md transition-all cursor-pointer active:scale-95">
+                    Save Layout Configuration
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    const activeCanvasPads = {};
+
+    function initDrawingPad(canvasId) {
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+
+        const ctx = canvas.getContext('2d');
+        let isDrawing = false;
+
+        // Match internal canvas bitmap pixels to screen container box size dimensions
+        function resizeBitmap() {
+            // Secure ongoing sketch coordinates data state before running dimensional adaptations
+            let tempCanvasContent = null;
+            if (activeCanvasPads[canvasId] && activeCanvasPads[canvasId].hasDrawn) {
+                tempCanvasContent = canvas.toDataURL();
+            }
+
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+
+            // Re-initialize vector rendering line styles on the freshly allocated bitmap context
+            ctx.strokeStyle = '#0f172a'; // Smooth dark ink stroke line
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            // Redraw signature history back onto the newly resized matrix surface bounds safely
+            if (tempCanvasContent) {
+                const img = new Image();
+                img.onload = function() {
+                    ctx.drawImage(img, 0, 0);
+                };
+                img.src = tempCanvasContent;
+            }
+        }
+
+        // Register initial parameters tracking metrics
+        activeCanvasPads[canvasId] = { canvas, ctx, hasDrawn: false };
+
+        resizeBitmap();
+        window.addEventListener('resize', resizeBitmap);
+
+        // --- EVENT INTERCEPTORS: MOUSE CAPTURE ---
+        canvas.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            ctx.beginPath();
+            ctx.moveTo(e.offsetX, e.offsetY);
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            ctx.lineTo(e.offsetX, e.offsetY);
+            ctx.stroke();
+            activeCanvasPads[canvasId].hasDrawn = true;
+        });
+
+        window.addEventListener('mouseup', () => { isDrawing = false; });
+        window.addEventListener('mouseleave', () => { isDrawing = false; });
+
+        // --- EVENT INTERCEPTORS: TOUCH/STYLUS CAPTURE ---
+        canvas.addEventListener('touchstart', (e) => {
+            isDrawing = true;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            ctx.beginPath();
+            ctx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            e.preventDefault();
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            if (!isDrawing) return;
+            const touch = e.touches[0];
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            ctx.stroke();
+            activeCanvasPads[canvasId].hasDrawn = true;
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => { isDrawing = false; });
+    }
+
+    function clearCanvasPad(canvasId) {
+        const pad = activeCanvasPads[canvasId];
+        if (pad) {
+            pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+            pad.hasDrawn = false;
+        }
+    }
+
+    // Intercept submit, capturing vectors to Base64 inputs before focus changes clear bitmap buffers
+    document.getElementById('certificateSetupForm').addEventListener('submit', function(e) {
+        const primaryPad = activeCanvasPads['primarySigCanvas'];
+        const secondaryPad = activeCanvasPads['secondarySigCanvas'];
+
+        if (primaryPad && primaryPad.hasDrawn) {
+            document.getElementById('id_primary_signature_data').value = primaryPad.canvas.toDataURL('image/png');
+        }
+        if (secondaryPad && secondaryPad.hasDrawn) {
+            document.getElementById('id_secondary_signature_data').value = secondaryPad.canvas.toDataURL('image/png');
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        initDrawingPad('primarySigCanvas');
+        initDrawingPad('secondarySigCanvas');
+
+        // Logo file viewer preview hook
+        const logoInput = document.getElementById('id_certificate_logo');
+        if (logoInput) {
+            logoInput.addEventListener('change', function() {
+                const targetFile = this.files[0];
+                if (targetFile) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const box = document.getElementById('logoPreviewBox');
+                        if (box) box.innerHTML = `<img src="${e.target.result}" class="w-full h-full object-contain p-1">`;
+                    }
+                    reader.readAsDataURL(targetFile);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

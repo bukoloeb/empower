@@ -46,6 +46,46 @@ class Course(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    certificate_logo = models.ImageField(
+        upload_to='certificate_logos/',
+        blank=True,
+        null=True,
+        help_text="Upload brand/company logo for the certificate footer"
+    )
+    primary_signatory_name = models.CharField(
+        max_length=100,
+        default="Charles Bukolo",
+        help_text="Name of the course creator/primary authority"
+    )
+    primary_signatory_title = models.CharField(
+        max_length=100,
+        default="Empower Edge",
+        help_text="Title/Organization of the primary signatory"
+    )
+    primary_signature_image = models.ImageField(
+        upload_to='certificate_signatures/',
+        blank=True,
+        null=True,
+        help_text="Upload signature image line overlay"
+    )
+
+    secondary_signatory_name = models.CharField(
+        max_length=100,
+        default="Chitongwa Banda",
+        help_text="Collaborator name (e.g., BeRelevant Afrika)"
+    )
+    secondary_signatory_title = models.CharField(
+        max_length=100,
+        default="BeRelevant Afrika",
+        help_text="Title/Organization of the secondary signatory"
+    )
+    secondary_signature_image = models.ImageField(
+        upload_to='certificate_signatures/',
+        blank=True,
+        null=True,
+        help_text="Upload partner authority signature overlay"
+    )
+
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.title)

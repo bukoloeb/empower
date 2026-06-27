@@ -1,3 +1,4 @@
+import math
 import io
 import json
 import os
@@ -8,12 +9,16 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, FileResponse, HttpResponse
 from django.db.models import Count, Q
-
 # ReportLab Imports for Certificates
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import landscape, A4
-from reportlab.lib.units import inch
 from reportlab.lib.colors import HexColor
+from reportlab.lib.utils import ImageReader
+from reportlab.lib.units import inch
+from reportlab.platypus import Paragraph
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.enums import TA_CENTER
+
 
 # Models and Forms
 from .models import (
@@ -22,10 +27,11 @@ from .models import (
     Question, Choice, QuizSubmission
 )
 from .forms import CourseForm, LessonForm
+import base64
+from django.core.files.base import ContentFile
 
 # Helper Logic for Video Streaming
 from ranged_response import RangedFileResponse
-
 
 # --- HELPER UTILITIES ---
 
@@ -36,7 +42,6 @@ def stream_video(request, video_path):
     response = RangedFileResponse(request, open(video_path, 'rb'), content_type=content_type)
     response['Accept-Ranges'] = 'bytes'
     return response
-
 
 @login_required
 def lesson_video_stream(request, lesson_id):
@@ -80,7 +85,6 @@ def check_course_completion(user, course):
             enrollment.save()
         return True
     return False
-
 
 # --- STUDENT VIEWS ---
 
@@ -493,43 +497,324 @@ def reorder_questions_view(request, quiz_id):
 
 @login_required
 def download_certificate(request, course_slug):
+    """Generates PDF certificate for completed courses or live educator previews."""
     course = get_object_or_404(Course, slug=course_slug)
-    enrollment = get_object_or_404(Enrollment, student=request.user, course=course)
 
-    if not enrollment.is_completed:
-        is_now_complete = check_course_completion(request.user, course)
-        if not is_now_complete:
-            messages.error(request,
-                           "You haven't completed all required lessons and assessments for this certificate yet.")
-            return redirect('course_player', slug=course.slug)
-        enrollment.refresh_from_db()
+    is_preview = request.GET.get('preview') == 'true'
+
+    if is_preview:
+        if course.educator != request.user:
+            return HttpResponse("Unauthorized preview request.", status=403)
+    else:
+        enrollment = get_object_or_404(Enrollment, student=request.user, course=course)
+        if not enrollment.is_completed:
+            is_now_complete = check_course_completion(request.user, course)
+            if not is_now_complete:
+                messages.error(request, "Course requirements not yet fully cleared.")
+                return redirect('course_player', slug=course.slug)
+            enrollment.refresh_from_db()
 
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer, pagesize=landscape(A4))
     width, height = landscape(A4)
 
-    p.setStrokeColor(HexColor('#2563eb'))
-    p.setLineWidth(5)
-    p.rect(0.2 * inch, 0.2 * inch, width - 0.4 * inch, height - 0.4 * inch)
+    # Color Palette Config
+    dark_blue = HexColor('#1e293b')
+    sky_blue = HexColor('#38bdf8')
+    mid_blue = HexColor('#0284c7')
+    charcoal = HexColor('#0f172a')
+    muted_text = HexColor('#475569')
 
-    p.setFont("Helvetica-Bold", 40)
-    p.drawCentredString(width / 2, height - 2 * inch, "CERTIFICATE OF COMPLETION")
+    # Medal Colors Config
+    gold_dark = HexColor('#ca8a04')
+    gold_base = HexColor('#eab308')
+    gold_light = HexColor('#facc15')
 
-    p.setFont("Helvetica", 18)
-    p.drawCentredString(width / 2, height - 2.5 * inch, "This is to certify that")
+    # ==========================================
+    # --- GEOMETRIC BACKGROUND CORNERS ---
+    # ==========================================
+    tl1 = p.beginPath()
+    tl1.moveTo(0, height);
+    tl1.lineTo(180, height);
+    tl1.lineTo(0, height - 60);
+    tl1.close()
+    p.setFillColor(dark_blue);
+    p.drawPath(tl1, fill=1, stroke=0)
 
-    p.setFont("Helvetica-Bold", 32)
-    user_display_name = request.user.get_full_name() or request.user.username or request.user.email
-    p.drawCentredString(width / 2, height - 3.5 * inch, f"{user_display_name}")
+    tl2 = p.beginPath()
+    tl2.moveTo(0, height - 30);
+    tl2.lineTo(120, height);
+    tl2.lineTo(0, height);
+    tl2.close()
+    p.setFillColor(sky_blue);
+    p.drawPath(tl2, fill=1, stroke=0)
 
-    p.setFont("Helvetica-Bold", 24)
-    p.drawCentredString(width / 2, height - 5 * inch, f"{enrollment.course.title}")
+    tr1 = p.beginPath()
+    tr1.moveTo(width - 150, height);
+    tr1.lineTo(width, height - 120);
+    tr1.lineTo(width, height);
+    tr1.close()
+    p.setFillColor(mid_blue);
+    p.drawPath(tr1, fill=1, stroke=0)
+
+    tr2 = p.beginPath()
+    tr2.moveTo(width - 90, height);
+    tr2.lineTo(width, height - 200);
+    tr2.lineTo(width, height);
+    tr2.close()
+    p.setFillColor(sky_blue);
+    p.drawPath(tr2, fill=1, stroke=0)
+
+    bl1 = p.beginPath()
+    bl1.moveTo(0, 0);
+    bl1.lineTo(220, 0);
+    bl1.lineTo(0, 110);
+    bl1.close()
+    p.setFillColor(dark_blue);
+    p.drawPath(bl1, fill=1, stroke=0)
+
+    bl2 = p.beginPath()
+    bl2.moveTo(0, 0);
+    bl2.lineTo(150, 0);
+    bl2.lineTo(0, 160);
+    bl2.close()
+    p.setFillColor(mid_blue);
+    p.drawPath(bl2, fill=1, stroke=0)
+
+    br1 = p.beginPath()
+    br1.moveTo(width - 320, 0);
+    br1.lineTo(width, 40);
+    br1.lineTo(width, 0);
+    br1.close()
+    p.setFillColor(dark_blue);
+    p.drawPath(br1, fill=1, stroke=0)
+
+    br2 = p.beginPath()
+    br2.moveTo(width - 180, 0);
+    br2.lineTo(width, 90);
+    br2.lineTo(width, 0);
+    br2.close()
+    p.setFillColor(mid_blue);
+    p.drawPath(br2, fill=1, stroke=0)
+
+    # ==========================================
+    # --- DYNAMIC VECTOR GOLD MEDAL ROSETTE ---
+    # ==========================================
+    medal_x = width - 150
+    medal_y = height - 140
+
+    p.setFillColor(gold_base)
+    r1 = p.beginPath()
+    r1.moveTo(medal_x - 10, medal_y - 20);
+    r1.lineTo(medal_x - 35, medal_y - 95);
+    r1.lineTo(medal_x - 15, medal_y - 80);
+    r1.lineTo(medal_x + 5, medal_y - 20);
+    r1.close()
+    p.drawPath(r1, fill=1, stroke=0)
+
+    r2 = p.beginPath()
+    r2.moveTo(medal_x - 5, medal_y - 20);
+    r2.lineTo(medal_x + 15, medal_y - 80);
+    r2.lineTo(medal_x + 35, medal_y - 95);
+    r2.lineTo(medal_x + 10, medal_y - 20);
+    r2.close()
+    p.drawPath(r2, fill=1, stroke=0)
+
+    num_points = 32
+    outer_r = 46
+    inner_r = 38
+    pleat_path = p.beginPath()
+    for i in range(num_points * 2):
+        angle = i * (math.pi / num_points)
+        curr_r = outer_r if i % 2 == 0 else inner_r
+        px = medal_x + curr_r * math.cos(angle)
+        py = medal_y + curr_r * math.sin(angle)
+        if i == 0:
+            pleat_path.moveTo(px, py)
+        else:
+            pleat_path.lineTo(px, py)
+    pleat_path.close()
+    p.setFillColor(gold_light);
+    p.setStrokeColor(gold_dark);
+    p.setLineWidth(1)
+    p.drawPath(pleat_path, fill=1, stroke=1)
+
+    p.setFillColor(gold_base);
+    p.circle(medal_x, medal_y, 34, fill=1, stroke=1)
+    p.setFillColor(gold_light);
+    p.circle(medal_x, medal_y, 30, fill=1, stroke=0)
+    p.setStrokeColor(gold_dark);
+    p.setLineWidth(0.75);
+    p.circle(medal_x, medal_y, 26, fill=0, stroke=1)
+
+    # ==========================================
+    # --- TYPOGRAPHY TEXT GRID ---
+    # ==========================================
+    # ==========================================
+    # --- TYPOGRAPHY TEXT GRID ---
+    # ==========================================
+    p.setFont("Times-Bold", 42)
+    p.setFillColor(charcoal)
+    p.drawCentredString(width / 2, height - 130, "Certificate of Completion")
+
+    p.setFont("Helvetica", 14)
+    p.setFillColor(muted_text)
+    p.drawCentredString(width / 2, height - 190, "This certificate is proudly awarded to")
+
+    if is_preview:
+        student_name = "SAMPLE STUDENT NAME"
+    else:
+        student_name = request.user.get_full_name() or request.user.username or request.user.email
+
+    # Defensive String Width Evaluation to prevent long names from clipping
+    student_name = student_name.upper()
+    font_size = 28
+    max_allowed_width = 460
+    name_width = p.stringWidth(student_name, "Helvetica-Bold", font_size)
+    if name_width > max_allowed_width:
+        font_size = int(font_size * (max_allowed_width / name_width))
+
+    p.setFont("Helvetica-Bold", font_size)
+    p.setFillColor(charcoal)
+    p.drawCentredString(width / 2, height - 250, student_name)
+
+    p.setStrokeColor(HexColor('#94a3b8'))
+    p.setLineWidth(0.75)
+    p.line(width / 2 - 180, height - 265, width / 2 + 180, height - 265)
+
+    # --- FULLY DYNAMIC PARAGRAPH-FLOW MIXED STYLE ATTESTATION ---
+    attestation_style = ParagraphStyle(
+        name='AttestationStyle',
+        fontName='Helvetica-Oblique',
+        fontSize=11,
+        leading=18,
+        textColor=muted_text,
+        alignment=TA_CENTER
+    )
+
+    # Pull variables dynamically from the database
+    course_title = course.title
+
+    # Dynamically extract secondary partner organization from signature fields
+    partner_org = course.secondary_signatory_title if course.secondary_signatory_title else "Partner Institution"
+
+    # Dynamically handle key skills field with defensive fallback protection checks
+    key_skills_gained = course.skills_gained if hasattr(course,
+                                                        'skills_gained') and course.skills_gained else "specialized operational track parameters"
+
+    # Construct the exact HTML-formatted text block
+    raw_html_content = (
+        f"For having successfully completed training in a Transformative <b>\"{course_title}\"</b> "
+        f"Program under Empower Edge Enterprises Limited in Collaboration with {partner_org}. "
+        f"Empowered with practical skills in <b>{key_skills_gained}</b>."
+    )
+
+    # Compile the flowable paragraph within a fixed bounding box constraint width
+    attestation_paragraph = Paragraph(raw_html_content, attestation_style)
+
+    # Render paragraph layout centered exactly between left/right boundaries
+    paragraph_width = 560
+    paragraph_x = (width / 2) - (paragraph_width / 2)
+    paragraph_y = height - 355
+
+    attestation_paragraph.wrap(paragraph_width, 100)
+    attestation_paragraph.drawOn(p, paragraph_x, paragraph_y)
+
+    # ==========================================
+    # --- SIGNATURE HOOK LAYOUT OVERLAYS ---
+    # ==========================================
+    p.setStrokeColor(charcoal)
+    p.setLineWidth(1)
+    p.line(140, 135, 300, 135)
+    if course.secondary_signature_image and os.path.exists(course.secondary_signature_image.path):
+        p.drawImage(course.secondary_signature_image.path, 170, 140, width=80, height=45, mask='auto')
+    p.setFont("Helvetica-Bold", 11)
+    p.setFillColor(charcoal)
+    p.drawString(140, 118, course.secondary_signatory_name)
+    p.setFont("Helvetica", 10)
+    p.setFillColor(muted_text)
+    p.drawString(140, 104, course.secondary_signatory_title)
+
+    p.line(width - 300, 135, width - 140, 135)
+    if course.primary_signature_image and os.path.exists(course.primary_signature_image.path):
+        p.drawImage(course.primary_signature_image.path, width - 260, 140, width=80, height=45, mask='auto')
+    p.setFont("Helvetica-Bold", 11)
+    p.setFillColor(charcoal)
+    p.drawString(width - 300, 118, course.primary_signatory_name)
+    p.setFont("Helvetica", 10)
+    p.setFillColor(muted_text)
+    p.drawString(width - 300, 104, course.primary_signatory_title)
+
+    # Proportional ImageReader Aspect Calculation to prevent logo stretching
+    if course.certificate_logo and os.path.exists(course.certificate_logo.path):
+        img_reader = ImageReader(course.certificate_logo.path)
+        img_w, img_h = img_reader.getSize()
+
+        max_height = 80.0
+        aspect_ratio = img_w / img_h
+        render_w = max_height * aspect_ratio
+        render_h = max_height
+
+        logo_x = (width / 2) - (render_w / 2)
+        p.drawImage(course.certificate_logo.path, logo_x, 115, width=render_w, height=render_h, mask='auto')
+    else:
+        p.setFont("Helvetica-Bold", 16)
+        p.setFillColor(charcoal)
+        p.drawCentredString(width / 2, 95, "Empower Edge Enterprises Ltd")
+
+    p.setFont("Helvetica", 9)
+    p.setFillColor(mid_blue)
+    p.drawCentredString(width / 2, 80, "Educate, Empower, Elevate")
 
     p.showPage()
     p.save()
     buffer.seek(0)
 
-    return FileResponse(buffer, as_attachment=True, filename=f'Certificate_{course_slug}.pdf')
+    disposition = "inline" if is_preview else "attachment"
+    return FileResponse(buffer, content_type='application/pdf', as_attachment=(not is_preview),
+                        filename=f'Certificate_{course_slug}.pdf')
+
+
+
+@login_required
+def configure_certificate_view(request, slug):
+    """Allows instructors to customize the certificate design context per course with live drawn pads."""
+    course = get_object_or_404(Course, slug=slug, educator=request.user)
+    from .forms import CertificateTemplateForm
+
+    if request.method == 'POST':
+        form = CertificateTemplateForm(request.POST, request.FILES, instance=course)
+        if form.is_valid():
+            updated_course = form.save(commit=False)
+
+            # Extract and process data-URL signatures if present
+            primary_data = form.cleaned_data.get('primary_signature_data')
+            if primary_data and primary_data.startswith('data:image/png;base64,'):
+                format, imgstr = primary_data.split(';base64,')
+                ext = format.split('/')[-1]
+                updated_course.primary_signature_image.save(
+                    f"sig_primary_{course.id}.{ext}",
+                    ContentFile(base64.b64decode(imgstr)),
+                    save=False
+                )
+
+            secondary_data = form.cleaned_data.get('secondary_signature_data')
+            if secondary_data and secondary_data.startswith('data:image/png;base64,'):
+                format, imgstr = secondary_data.split(';base64,')
+                ext = format.split('/')[-1]
+                updated_course.secondary_signature_image.save(
+                    f"sig_secondary_{course.id}.{ext}",
+                    ContentFile(base64.b64decode(imgstr)),
+                    save=False
+                )
+
+            updated_course.save()
+            messages.success(request, f"Certificate layout updates applied successfully!")
+            return redirect('manage_curriculum', slug=course.slug)
+    else:
+        form = CertificateTemplateForm(instance=course)
+
+    return render(request, 'courses/certificate_form.html', {'form': form, 'course': course})
 
 
 @login_required

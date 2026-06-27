@@ -100,3 +100,33 @@ class LessonForm(forms.ModelForm):
         self.fields['is_preview'].widget.attrs.update({
             'class': 'w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-2 border-slate-400 cursor-pointer'
         })
+
+
+class CertificateTemplateForm(forms.ModelForm):
+    # Hidden strings slots mapped explicitly to register incoming drawn vector strings
+    primary_signature_data = forms.CharField(required=False, widget=forms.HiddenInput())
+    secondary_signature_data = forms.CharField(required=False, widget=forms.HiddenInput())
+
+    class Meta:
+        model = Course
+        fields = [
+            'certificate_logo',
+            'primary_signatory_name', 'primary_signatory_title',
+            'secondary_signatory_name', 'secondary_signatory_title',
+            'primary_signature_data', 'secondary_signature_data'
+        ]
+        widgets = {
+            'primary_signatory_name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:border-blue-600 outline-none transition-all'
+            }),
+            'primary_signatory_title': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:border-blue-600 outline-none transition-all'
+            }),
+            'secondary_signatory_name': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:border-blue-600 outline-none transition-all'
+            }),
+            'secondary_signatory_title': forms.TextInput(attrs={
+                'class': 'w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:border-blue-600 outline-none transition-all'
+            }),
+            'certificate_logo': forms.ClearableFileInput(attrs={'class': 'text-xs text-slate-500 font-bold'}),
+        }

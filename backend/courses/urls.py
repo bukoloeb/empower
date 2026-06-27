@@ -21,7 +21,7 @@ urlpatterns = [
 
     # --- Learning Interface (The Player) ---
 
-    # FIXED: Both capture patterns now use the unified name 'course_player'
+    # FIXED: Both capture patterns use the unified name 'course_player'
     # Django will automatically resolve the correct template tag signature choice!
     path('<slug:slug>/learn/', views.course_player_view, name='course_player'),
     path('<slug:slug>/learn/<int:lesson_id>/', views.course_player_view, name='course_player'),
@@ -49,6 +49,9 @@ urlpatterns = [
 
     # Builder Home: The drag-and-drop curriculum management hub
     path('course/<slug:slug>/curriculum/', views.manage_curriculum_view, name='manage_curriculum'),
+
+    # NEW: Dynamic Certificate Template Form Editor Configuration Endpoint
+    path('course/<slug:slug>/certificate-settings/', views.configure_certificate_view, name='certificate_settings'),
 
     # --- Module Management ---
 
