@@ -1,19 +1,17 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15
     container_name: empower_db
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
+      - postgres_data_v2:/var/lib/postgresql/data/
     env_file:
       - ./backend/.env
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=empower_edge_db
+      - POSTGRES_USER=edward_admin
+      - POSTGRES_PASSWORD=secure_password_123
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U edward_admin -d empower_edge_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -34,4 +32,4 @@ services:
         condition: service_healthy
 
 volumes:
-  postgres_data:
+  postgres_data_v2:

@@ -210,10 +210,13 @@ def course_player_view(request, slug, lesson_id=None):
         messages.warning(request, "This course has no lessons available yet.")
         return redirect('course_detail', slug=course.slug)
 
-    # Fetch normalized completion trackers matching direct student foreign keys
-    completed_lesson_ids = set(LessonCompletion.objects.filter(
-        student=request.user, lesson__module__course=course
-    ).values_list('lesson_id', flat=True))
+    # Fetch completion IDs cleanly matching the student explicitly
+    completed_lesson_ids = set(
+        LessonCompletion.objects.filter(
+            student=request.user,
+            lesson__module__course=course
+        ).values_list('lesson_id', flat=True)
+    )
 
     passed_quiz_ids = list(QuizSubmission.objects.filter(
         student=request.user, quiz__course=course, passed=True
@@ -223,18 +226,24 @@ def course_player_view(request, slug, lesson_id=None):
     if lesson_id:
         current_lesson = get_object_or_404(Lesson, id=lesson_id, module__course=course)
     else:
-        current_lesson = next((l for l in all_lessons if l.id not in completed_lesson_ids), all_lessons[0])
-        return redirect('course_player', slug=course.slug, lesson_id=current_lesson.id)
+        current_spot_id = next((l.id for l in all_lessons if l.id not in completed_lesson_ids), all_lessons[0].id)
+        return redirect('course_player', slug=course.slug, lesson_id=current_spot_id)
 
-    # ENFORCE SEQUENTIAL SECURITY GATING
+    # ENFORCE SEQUENTIAL SECURITY GATING WITH DIRECT DATABASE RE-VERIFICATION
     active_idx = all_lessons.index(current_lesson)
     if active_idx > 0:
         previous_lesson = all_lessons[active_idx - 1]
-        if previous_lesson.id not in completed_lesson_ids:
-            messages.warning(request,
-                             f"Please complete the previous lesson '{previous_lesson.title}' before moving forward!")
-            current_spot = next((l for l in all_lessons if l.id not in completed_lesson_ids), all_lessons[0])
-            return redirect('course_player', slug=course.slug, lesson_id=current_spot.id)
+
+        # Verify directly against database state to bypass model set evaluation lag
+        is_prev_completed = LessonCompletion.objects.filter(
+            student=request.user,
+            lesson=previous_lesson
+        ).exists()
+
+        if not is_prev_completed:
+            messages.warning(request, f"Please complete the previous lesson '{previous_lesson.title}' before moving forward!")
+            fallback_lesson_id = next((l.id for l in all_lessons if l.id not in completed_lesson_ids), all_lessons[0].id)
+            return redirect('course_player', slug=course.slug, lesson_id=fallback_lesson_id)
 
     # Setup sibling navigation flags
     next_lesson = all_lessons[active_idx + 1] if active_idx < len(all_lessons) - 1 else None
@@ -256,10 +265,14 @@ def course_player_view(request, slug, lesson_id=None):
     progress = int((len(completed_lesson_ids) / total_lessons) * 100) if total_lessons > 0 else 0
 
     context = {
-        'course': course, 'modules': modules, 'current_lesson': current_lesson,
-        'next_lesson': next_lesson, 'prev_lesson': prev_lesson,
+        'course': course,
+        'modules': modules,
+        'current_lesson': current_lesson,
+        'next_lesson': next_lesson,
+        'prev_lesson': prev_lesson,
         'completed_lesson_ids': completed_lesson_ids,
-        'passed_quiz_ids': passed_quiz_ids, 'progress': progress,
+        'passed_quiz_ids': passed_quiz_ids,
+        'progress': progress,
         'all_lessons_completed': all_lessons_completed,
         'sidebar_minimized': request.session.get('sidebar_minimized', False),
     }
