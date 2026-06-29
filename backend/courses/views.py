@@ -43,15 +43,33 @@ def stream_video(request, video_path):
     response['Accept-Ranges'] = 'bytes'
     return response
 
+
 @login_required
 def lesson_video_stream(request, lesson_id):
+    """Streams locally uploaded course videos using chunk-aware partial content byte ranges."""
     lesson = get_object_or_404(Lesson, id=lesson_id)
+    print(f"--- DEBUG: Found lesson {lesson_id}. Title: {lesson.title}")
+
     if not lesson.video_file:
+        print(f"--- DEBUG: Lesson {lesson_id} has NO video_file attached in the database.")
         return HttpResponse(status=404)
 
+    # 1. Standard Django Path Evaluation
     video_path = lesson.video_file.path
+    print(f"--- DEBUG: Standard evaluation checks path: {video_path}")
+
+    # 2. FIXED FALLBACK: If standard check fails, dynamically scan your actual 'course_videos' directory structure
     if not os.path.exists(video_path):
-        return HttpResponse(status=404)
+        filename = os.path.basename(lesson.video_file.name)
+        from django.conf import settings
+        fallback_path = os.path.join(settings.MEDIA_ROOT, 'course_videos', filename)
+        print(f"--- DEBUG: Standard path missing. Running fallback directory scan at: {fallback_path}")
+
+        if os.path.exists(fallback_path):
+            video_path = fallback_path
+        else:
+            print(f"--- DEBUG: FAIL: Video file missing from both standard path and course_videos root track!")
+            return HttpResponse(status=404)
 
     content_type, _ = mimetypes.guess_type(video_path)
     content_type = content_type or 'video/mp4'
@@ -256,15 +274,27 @@ def course_player_view(request, slug, lesson_id=None):
     # Quiz Access logic: fully gated until all lessons are cleared
     all_lessons_completed = len(completed_lesson_ids) >= len(all_lessons)
 
-    # Format YouTube embed configurations seamlessly
+    # --- DUAL-MEDIA ROUTER: YOUTUBE VS LOCAL MEDIA STREAMS ---
+    is_youtube = False
+    video_source_url = ""
+
     if current_lesson.video_url:
+        is_youtube = True
         url = current_lesson.video_url
         if "watch?v=" in url:
-            current_lesson.video_url = url.replace("watch?v=", "embed/")
+            video_source_url = url.replace("watch?v=", "embed/")
         elif "youtu.be/" in url:
             video_id = url.split("/")[-1].split("?")[0]
-            current_lesson.video_url = f"https://www.youtube.com/embed/{video_id}"
+            video_source_url = f"https://www.youtube.com/embed/{video_id}"
+        else:
+            video_source_url = url
 
+    elif current_lesson.video_file:
+        from django.urls import reverse
+        # Dynamically matches your name='lesson_video_stream' route pattern passing the current ID
+        video_source_url = reverse('lesson_video_stream', kwargs={'lesson_id': current_lesson.id})
+
+    # FIXED INDENTATION: Progress calculations must run dynamically outside the conditional branches
     total_lessons = len(all_lessons)
     progress = int((len(completed_lesson_ids) / total_lessons) * 100) if total_lessons > 0 else 0
 
@@ -279,6 +309,10 @@ def course_player_view(request, slug, lesson_id=None):
         'progress': progress,
         'all_lessons_completed': all_lessons_completed,
         'sidebar_minimized': request.session.get('sidebar_minimized', False),
+
+        # UI Media Toggles
+        'is_youtube': is_youtube,
+        'video_source_url': video_source_url,
     }
     return render(request, 'courses/course_player.html', context)
 

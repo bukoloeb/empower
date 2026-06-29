@@ -47,16 +47,17 @@
             </div>
 
             <div class="divide-y divide-gray-100">
+
                 {% for lesson in module.lessons.all %}
                 <div class="p-5 px-8 flex justify-between items-center hover:bg-blue-50/30 transition border-l-4 border-transparent hover:border-blue-600">
                     <div class="flex items-center gap-4">
                         <div class="text-gray-400">
-                            {% if lesson.content_type == 'VIDEO' %}
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2-0 012-2h12a2 2-0 012 2v8a2 2-0 01-2 2H4a2 2-0 01-2-2V6zm2 1v6l5-3-5-3z"></path></svg>
-                            {% elif lesson.content_type == 'TEXT' %}
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2-0 012-2h4.586A2 2.586L12 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2-0 01-2-2V4z"></path></svg>
+                            {% if lesson.video_file or lesson.video_url %}
+                                <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2-0 012-2h12a2 2-0 012 2v8a2 2-0 01-2 2H4a2 2-0 01-2-2V6zm2 1v6l5-3-5-3z"></path></svg>
+                            {% elif lesson.pdf_file %}
+                                <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20"><path d="M4 4a2 2-0 012-2h4.586A2 2.586L12 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2-0 01-2-2V4z"></path></svg>
                             {% else %}
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2-0 012-2h4.586A2 2.586L12 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2-0 01-2-2V4z" clip-rule="evenodd"></path></svg>
+                                <svg class="w-5 h-5 text-slate-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 4a2 2-0 012-2h4.586A2 2.586L12 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2-0 01-2-2V4z" clip-rule="evenodd"></path></svg>
                             {% endif %}
                         </div>
                         <span class="text-sm font-bold text-gray-800">{{ lesson.title }}</span>
@@ -69,11 +70,40 @@
                         </button>
                     </div>
                 </div>
-                {% empty %}
-                <div class="p-10 text-center">
-                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest italic">No lessons in this module yet.</p>
-                </div>
                 {% endfor %}
+
+               {% for quiz in module.quizzes.all %}
+<div class="p-5 px-8 flex justify-between items-center bg-amber-50/30 hover:bg-amber-100/40 transition border-l-4 border-amber-500">
+    <div class="flex items-center gap-4">
+        <div class="text-amber-600">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2-0 00-2 2v12a2 2-0 002 2h10a2 2-0 002-2V7a2 2-0 00-2-2h-2M9 5a2 2-0 002 2h2a2 2-0 002-2M9 5a2 2-0 012-2h2a2 2-0 012 2"></path>
+            </svg>
+        </div>
+        <div class="flex flex-col">
+            <span class="text-sm font-bold text-gray-800">{{ quiz.title }}</span>
+            <span class="text-[9px] text-amber-700 font-black uppercase tracking-wider mt-0.5">Evaluation Assessment Module Block</span>
+        </div>
+    </div>
+
+    <div class="flex items-center gap-6">
+        <a href="{% url 'manage_quiz_questions' quiz.id %}"
+           class="text-[10px] font-black text-amber-700 uppercase tracking-widest hover:text-amber-900 transition flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+            </svg>
+            Manage Questions
+        </a>
+    </div>
+</div>
+{% endfor %}
+
+                {% if not module.lessons.all and not module.quizzes.all %}
+                <div class="p-10 text-center">
+                    <p class="text-xs text-gray-400 font-bold uppercase tracking-widest italic">No lessons or quizzes in this module yet.</p>
+                </div>
+                {% endif %}
+
             </div>
         </div>
         {% empty %}
@@ -108,10 +138,10 @@
 </div>
 
 <div id="deleteModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/70 backdrop-blur-sm">
-    <div class="bg-white rounded-3xl p-10 max-w-sm w-full shadow-2xl text-center">
+    <div class="bg-white rounded-3xl p-10 max-sm w-full shadow-2xl text-center">
         <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2-0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
             </svg>
         </div>
         <h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">Delete Lesson?</h3>
