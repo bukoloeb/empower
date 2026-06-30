@@ -418,6 +418,7 @@ def add_module_view(request, slug):
     return redirect('manage_curriculum', slug=slug)
 
 
+
 @login_required
 @require_POST
 def delete_module_view(request, module_id):
@@ -426,6 +427,23 @@ def delete_module_view(request, module_id):
     module.delete()
     return redirect('manage_curriculum', slug=course_slug)
 
+
+@login_required
+@require_POST
+def reorder_modules_view(request, slug):
+    """AJAX endpoint to update the position sequence fields of course modules."""
+    course = get_object_or_404(Course, slug=slug, educator=request.user)
+    try:
+        data = json.loads(request.body)
+        module_ids = data.get('order', [])
+
+        # Sequentially rewrite the position index numbers back to database records
+        for index, m_id in enumerate(module_ids):
+            Module.objects.filter(id=m_id, course=course).update(order=index + 1)
+
+        return JsonResponse({'status': 'success', 'message': 'Module positions saved successfully.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 @login_required
 def add_lesson_view(request, module_id):
@@ -455,6 +473,24 @@ def edit_lesson_view(request, lesson_id):
         form = LessonForm(instance=lesson)
     return render(request, 'courses/lesson_form.html',
                   {'form': form, 'module': lesson.module, 'lesson': lesson, 'action': 'Edit'})
+
+
+@login_required
+@require_POST
+def reorder_lessons_view(request, module_id):
+    """AJAX endpoint to update the position sequence fields of nested module lessons."""
+    module = get_object_or_404(Module, id=module_id, course__educator=request.user)
+    try:
+        data = json.loads(request.body)
+        lesson_ids = data.get('order', [])
+
+        # Sequentially rewrite the position index numbers back to the lesson database table
+        for index, l_id in enumerate(lesson_ids):
+            Lesson.objects.filter(id=l_id, module=module).update(order=index + 1)
+
+        return JsonResponse({'status': 'success', 'message': 'Lesson positions saved successfully.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 @login_required

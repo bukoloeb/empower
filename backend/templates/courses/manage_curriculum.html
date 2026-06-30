@@ -11,7 +11,7 @@
     <div class="flex justify-between items-end mb-10 border-b border-gray-100 pb-6">
         <div>
             <h1 class="text-3xl font-black text-gray-900 tracking-tight">{{ course.title }}</h1>
-            <p class="text-sm text-gray-600 font-medium mt-1">Organize your course into logical modules, lessons, and assessments.</p>
+            <p class="text-sm text-gray-600 font-medium mt-1">Organize your course into logical modules, lessons, and assessments. Drag headers to sort modules, or drag list items to sort lessons.</p>
         </div>
         <div class="flex gap-3">
              <button onclick="toggleModal('moduleModal')" class="bg-gray-900 text-white px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-black transition shadow-xl">
@@ -20,13 +20,19 @@
         </div>
     </div>
 
-    <div class="space-y-8">
+    <div id="module-list-canvas" class="space-y-8">
         {% for module in modules %}
-        <div class="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
-            <div class="p-6 bg-gray-100/80 flex justify-between items-center border-b border-gray-200">
-                <div class="flex items-center gap-4">
+        <div class="module-block bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm transition-all duration-200 hover:border-blue-300 relative"
+             data-id="{{ module.id }}">
+
+            <div class="p-6 bg-gray-100/80 flex justify-between items-center border-b border-gray-200 cursor-grab active:cursor-grabbing module-drag-handle"
+                 draggable="true">
+                <div class="flex items-center gap-4 pointer-events-none select-none">
+                    <div class="text-gray-400 flex flex-col gap-0.5 pr-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+                    </div>
                     <span class="bg-blue-600 text-white w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black shadow-md">
-                        {{ forloop.counter }}
+                        <span class="module-index">{{ forloop.counter }}</span>
                     </span>
                     <h3 class="font-black text-gray-900 uppercase tracking-tight">{{ module.title }}</h3>
                 </div>
@@ -46,11 +52,15 @@
                 </div>
             </div>
 
-            <div class="divide-y divide-gray-100">
-
+            <div class="lesson-list-holder divide-y divide-gray-100" data-module-id="{{ module.id }}">
                 {% for lesson in module.lessons.all %}
-                <div class="p-5 px-8 flex justify-between items-center hover:bg-blue-50/30 transition border-l-4 border-transparent hover:border-blue-600">
-                    <div class="flex items-center gap-4">
+                <div class="lesson-row p-5 px-8 flex justify-between items-center bg-white hover:bg-blue-50/30 transition border-l-4 border-transparent hover:border-blue-600 cursor-grab active:cursor-grabbing"
+                     data-id="{{ lesson.id }}"
+                     draggable="true">
+                    <div class="flex items-center gap-4 pointer-events-none select-none">
+                        <div class="text-gray-400 flex flex-col gap-0.5">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8h16M4 16h16"/></svg>
+                        </div>
                         <div class="text-gray-400">
                             {% if lesson.video_file or lesson.video_url %}
                                 <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M2 6a2 2-0 012-2h12a2 2-0 012 2v8a2 2-0 01-2 2H4a2 2-0 01-2-2V6zm2 1v6l5-3-5-3z"></path></svg>
@@ -72,38 +82,36 @@
                 </div>
                 {% endfor %}
 
-               {% for quiz in module.quizzes.all %}
-<div class="p-5 px-8 flex justify-between items-center bg-amber-50/30 hover:bg-amber-100/40 transition border-l-4 border-amber-500">
-    <div class="flex items-center gap-4">
-        <div class="text-amber-600">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2-0 00-2 2v12a2 2-0 002 2h10a2 2-0 002-2V7a2 2-0 00-2-2h-2M9 5a2 2-0 002 2h2a2 2-0 002-2M9 5a2 2-0 012-2h2a2 2-0 012 2"></path>
-            </svg>
-        </div>
-        <div class="flex flex-col">
-            <span class="text-sm font-bold text-gray-800">{{ quiz.title }}</span>
-            <span class="text-[9px] text-amber-700 font-black uppercase tracking-wider mt-0.5">Evaluation Assessment Module Block</span>
-        </div>
-    </div>
-
-    <div class="flex items-center gap-6">
-        <a href="{% url 'manage_quiz_questions' quiz.id %}"
-           class="text-[10px] font-black text-amber-700 uppercase tracking-widest hover:text-amber-900 transition flex items-center gap-1">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-            </svg>
-            Manage Questions
-        </a>
-    </div>
-</div>
-{% endfor %}
+                {% for quiz in module.quizzes.all %}
+                <div class="p-5 px-8 flex justify-between items-center bg-amber-50/30 hover:bg-amber-100/40 transition border-l-4 border-amber-500">
+                    <div class="flex items-center gap-4">
+                        <div class="text-amber-600">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2-0 00-2 2v12a2 2-0 002 2h10a2 2-0 002-2V7a2 2-0 00-2-2h-2M9 5a2 2-0 002 2h2a2 2-0 002-2M9 5a2 2-0 012-2h2a2 2-0 012 2"></path>
+                            </svg>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-gray-800">{{ quiz.title }}</span>
+                            <span class="text-[9px] text-amber-700 font-black uppercase tracking-wider mt-0.5">Evaluation Assessment Module Block</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <a href="{% url 'manage_quiz_questions' quiz.id %}"
+                           class="text-[10px] font-black text-amber-700 uppercase tracking-widest hover:text-amber-900 transition flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                            </svg>
+                            Manage Questions
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
 
                 {% if not module.lessons.all and not module.quizzes.all %}
-                <div class="p-10 text-center">
+                <div class="p-10 text-center empty-placeholder">
                     <p class="text-xs text-gray-400 font-bold uppercase tracking-widest italic">No lessons or quizzes in this module yet.</p>
                 </div>
                 {% endif %}
-
             </div>
         </div>
         {% empty %}
@@ -138,7 +146,7 @@
 </div>
 
 <div id="deleteModal" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/70 backdrop-blur-sm">
-    <div class="bg-white rounded-3xl p-10 max-sm w-full shadow-2xl text-center">
+    <div class="bg-white rounded-3xl p-10 max-w-sm w-full shadow-2xl text-center">
         <div class="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <svg class="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2-0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -146,7 +154,6 @@
         </div>
         <h3 class="text-2xl font-black text-gray-900 mb-2 tracking-tight">Delete Lesson?</h3>
         <p class="text-xs text-gray-500 font-medium mb-10 leading-relaxed">You are about to remove <span id="deleteLessonName" class="text-gray-900 font-extrabold"></span>. This action cannot be reversed.</p>
-
         <form id="deleteForm" method="POST">
             {% csrf_token %}
             <div class="flex flex-col gap-3">
@@ -165,10 +172,7 @@
             </svg>
         </div>
         <h3 class="text-2xl font-black text-gray-900 mb-2">Delete Module?</h3>
-        <p class="text-xs text-gray-500 font-medium mb-10 leading-relaxed">
-            Deleting <span id="moduleNameDisplay" class="text-red-600 font-extrabold"></span> will permanently remove all lessons and quizzes inside it.
-        </p>
-
+        <p class="text-xs text-gray-500 font-medium mb-10 leading-relaxed">Deleting <span id="moduleNameDisplay" class="text-red-600 font-extrabold"></span> will permanently remove all lessons and quizzes inside it.</p>
         <form id="deleteModuleForm" method="POST">
             {% csrf_token %}
             <div class="flex flex-col gap-3">
@@ -183,11 +187,9 @@
     function toggleModal(id) {
         const modal = document.getElementById(id);
         if (modal.classList.contains('hidden')) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+            modal.classList.remove('hidden'); modal.classList.add('flex');
         } else {
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
+            modal.classList.remove('flex'); modal.classList.add('hidden');
         }
     }
 
@@ -201,6 +203,121 @@
         document.getElementById('moduleNameDisplay').textContent = name;
         document.getElementById('deleteModuleForm').action = url;
         toggleModal('deleteModuleModal');
+    }
+
+    // ==========================================
+    // --- DRAG ORCHESTRATION PIPELINES ---
+    // ==========================================
+    const moduleCanvas = document.getElementById('module-list-canvas');
+    let draggedModuleBlock = null;
+    let draggedLessonRow = null;
+
+    // INTERCEPT CENTRALIZED CANVAS DRAGSTART
+    moduleCanvas.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('module-drag-handle')) {
+            draggedModuleBlock = e.target.closest('.module-block');
+            draggedModuleBlock.classList.add('opacity-40', 'border-blue-500');
+        } else if (e.target.classList.contains('lesson-row')) {
+            draggedLessonRow = e.target;
+            draggedLessonRow.classList.add('opacity-40', 'bg-blue-50');
+        }
+    });
+
+    // INTERCEPT CENTRALIZED CANVAS DRAGEND
+    moduleCanvas.addEventListener('dragend', (e) => {
+        if (draggedModuleBlock) {
+            draggedModuleBlock.classList.remove('opacity-40', 'border-blue-500');
+            draggedModuleBlock = null;
+            saveModuleOrderingSequence();
+        } else if (draggedLessonRow) {
+            const holdingContainer = draggedLessonRow.closest('.lesson-list-holder');
+            draggedLessonRow.classList.remove('opacity-40', 'bg-blue-50');
+            draggedLessonRow = null;
+            if (holdingContainer) {
+                saveLessonOrderingSequence(holdingContainer.getAttribute('data-module-id'));
+            }
+        }
+    });
+
+    // INTERCEPT CENTRALIZED CANVAS DRAGOVER
+    moduleCanvas.addEventListener('dragover', (e) => {
+        e.preventDefault();
+
+        // BRANCH A: RE-ARRANGING MODULE BLOCKS
+        if (draggedModuleBlock) {
+            const targetBlock = e.target.closest('.module-block');
+            if (targetBlock && targetBlock !== draggedModuleBlock) {
+                const rect = targetBlock.getBoundingClientRect();
+                const midpoint = e.clientY - rect.top;
+                if (midpoint > rect.height / 2) {
+                    targetBlock.after(draggedModuleBlock);
+                } else {
+                    targetBlock.before(draggedModuleBlock);
+                }
+                reindexModuleLabels();
+            }
+        }
+
+        // BRANCH B: RE-ARRANGING LESSON ROWS WITHIN A MODULE
+        else if (draggedLessonRow) {
+            const targetRow = e.target.closest('.lesson-row');
+            const parentHolder = e.target.closest('.lesson-list-holder');
+
+            // Enforce constraint safety: Only allow sorting lessons inside their own section module container!
+            if (parentHolder && parentHolder === draggedLessonRow.closest('.lesson-list-holder')) {
+                if (targetRow && targetRow !== draggedLessonRow) {
+                    const rect = targetRow.getBoundingClientRect();
+                    const midpoint = e.clientY - rect.top;
+                    if (midpoint > rect.height / 2) {
+                        targetRow.after(draggedLessonRow);
+                    } else {
+                        targetRow.before(draggedLessonRow);
+                    }
+                }
+            }
+        }
+    });
+
+    function reindexModuleLabels() {
+        document.querySelectorAll('.module-index').forEach((span, i) => {
+            span.innerText = i + 1;
+        });
+    }
+
+    function saveModuleOrderingSequence() {
+        const moduleIds = [];
+        document.querySelectorAll('.module-block').forEach(block => {
+            moduleIds.push(parseInt(block.getAttribute('data-id')));
+        });
+
+        fetch("{% url 'reorder_modules' course.slug %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 'order': moduleIds })
+        })
+        .then(res => res.json())
+        .catch(err => console.error('Socket communication exception:', err));
+    }
+
+    function saveLessonOrderingSequence(moduleId) {
+        const lessonIds = [];
+        const container = document.querySelector(`.lesson-list-holder[data-module-id="${moduleId}"]`);
+        if (!container) return;
+
+        container.querySelectorAll('.lesson-row').forEach(row => {
+            lessonIds.push(parseInt(row.getAttribute('data-id')));
+        });
+
+        // Resolve url path pattern dynamically by replacing absolute placeholder blocks
+        let lessonsReorderUrl = "{% url 'reorder_lessons' 0 %}".replace('0', moduleId);
+
+        fetch(lessonsReorderUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 'order': lessonIds })
+        })
+        .then(res => res.json())
+        .catch(err => console.error('Lesson socket reorder exception:', err));
     }
 </script>
 {% endblock %}

@@ -47,7 +47,9 @@ urlpatterns = [
     path('module/<int:module_id>/lesson/add/', views.add_lesson_view, name='add_lesson'),
     path('lesson/<int:lesson_id>/edit/', views.edit_lesson_view, name='edit_lesson'),
     path('lesson/<int:lesson_id>/delete/', views.delete_lesson_view, name='delete_lesson'),
-
+    # High Priority AJAX Sockets
+    path('course/<slug:slug>/modules/reorder/', views.reorder_modules_view, name='reorder_modules'),
+    path('module/<int:module_id>/lessons/reorder/', views.reorder_lessons_view, name='reorder_lessons'),
     # --- Quiz Builder ---
     path('module/<int:module_id>/quiz/add/', views.create_quiz_view, name='create_quiz'),
     path('quiz/<int:quiz_id>/questions/', views.manage_quiz_questions_view, name='manage_quiz_questions'),
